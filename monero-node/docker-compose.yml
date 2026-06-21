@@ -1,0 +1,53 @@
+version: "3.8"
+
+# Deploy this on pve1 LXC.
+# monerod runs pruned; wallet-rpc bound to localhost for backend tunnel access.
+
+services:
+  monerod:
+    image: ghcr.io/sethforprivacy/simple-monerod:latest
+    container_name: monerod
+    volumes:
+      - monero-data:/home/monero/.bitmonero
+    ports:
+      - "18080:18080"              # p2p
+      - "127.0.0.1:18081:18081"    # restricted RPC
+    command: >
+      --prune-blockchain
+      --rpc-bind-ip=0.0.0.0
+      --rpc-bind-port=18081
+      --restricted-rpc
+      --confirm-external-bind
+      --no-igd
+      --out-peers=32
+      --in-peers=32
+    restart: unless-stopped
+
+  wallet-rpc:
+    image: ghcr.io/sethforprivacy/simple-monero-wallet-rpc:latest
+    container_name: monero-wallet-rpc
+    volumes:
+      - monero-wallet:/home/monero/wallet
+    ports:
+      - "127.0.0.1:18082:18082"    # localhost only
+    environment:
+      - WALLET_FILE=/home/monero/wallet/store
+      - WALLET_PASSWORD_FILE=/run/secrets/wallet_password
+      - RPC_BIND_PORT=18082
+      - RPC_BIND_IP=0.0.0.0
+      - CONFIRM_EXTERNAL_BIND=1
+      - DAEMON_HOST=monerod
+      - DAEMON_PORT=18081
+    secrets:
+      - wallet_password
+    depends_on:
+      - monerod
+    restart: unless-stopped
+
+volumes:
+  monero-data:
+  monero-wallet:
+
+secrets:
+  wallet_password:
+    file: ./wallet_password.txt

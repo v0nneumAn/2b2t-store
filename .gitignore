@@ -1,0 +1,39 @@
+# Dependencies
+**/node_modules/
+**/.venv/
+**/__pycache__/
+*.pyc
+
+# Build outputs
+**/dist/
+**/build/
+
+# Environment
+.env
+.env.local
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+backend/data/
+delivery-bot/config.json
+paper-server/server/
+monero-node/wallet_password.txt
+monero-node/wallet/

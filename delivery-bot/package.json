@@ -1,0 +1,16 @@
+{
+  "name": "2b2t-delivery-bot",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/bot.js",
+    "dev": "node src/bot.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mineflayer": "^4.20.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "minecraft-data": "^3.69.0",
+    "vec3": "^0.1.10"
+  }
+}

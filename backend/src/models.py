@@ -1,0 +1,142 @@
+from datetime import datetime
+from decimal import Decimal
+from enum import Enum
+from typing import List, Optional
+from sqlalchemy import Column, String, Numeric, Integer, Boolean, DateTime, Text, ForeignKey, JSON, create_engine
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.sql import func
+
+Base = declarative_base()
+
+
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    AWAITING_PAYMENT = "awaiting_payment"
+    PAID = "paid"
+    PREPARING = "preparing"
+    IN_TRANSIT = "in_transit"
+    DELIVERED = "delivered"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    REFUNDED = "refunded"
+
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id = Column(String(32), primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, default="")
+    category = Column(String(50), nullable=False)
+    price_usd = Column(Numeric(12, 4), nullable=False)
+    image_url = Column(String(500), nullable=True)
+    is_active = Column(Boolean, default=True)
+    delivery_types = Column(JSON, default=list)
+    contents = Column(JSON, default=list)
+    stock_keeping = Column(String(20), default="depot")  # depot | made_to_order | unlimited
+    min_order_qty = Column(Integer, default=1)
+    max_order_qty = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class Cart(Base):
+    __tablename__ = "carts"
+
+    id = Column(String(32), primary_key=True)
+    session_id = Column(String(64), nullable=True)
+    discord_id = Column(String(64), nullable=True)
+    items = Column(JSON, default=list)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(String(32), primary_key=True)
+    order_id = Column(String(32), ForeignKey("orders.id"), nullable=False)
+    product_id = Column(String(32), nullable=False)
+    product_name = Column(String(255), nullable=False)
+    quantity = Column(Integer, default=1)
+    unit_price_usd = Column(Numeric(12, 4), nullable=False)
+
+    order = relationship("Order", back_populates="items")
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(String(32), primary_key=True)
+    customer_email = Column(String(255), nullable=True)
+    customer_discord_id = Column(String(64), nullable=True)
+    delivery_type = Column(String(20), nullable=False)
+    delivery_coords = Column(JSON, nullable=True)
+    delivery_address = Column(Text, nullable=True)
+
+    price_usd = Column(Numeric(12, 4), nullable=False)
+    price_xmr = Column(Numeric(20, 12), nullable=False)
+    xmr_address = Column(String(255), nullable=False)
+    xmr_subaddress_index = Column(Integer, nullable=True)
+
+    status = Column(String(30), default=OrderStatus.AWAITING_PAYMENT.value)
+    payment_tx_hash = Column(String(128), nullable=True)
+    confirmations = Column(Integer, default=0)
+    paid_at = Column(DateTime(timezone=True), nullable=True)
+
+    assigned_depot_id = Column(String(32), nullable=True)
+    assigned_bot = Column(String(64), nullable=True)
+    delivery_proof = Column(JSON, nullable=True)
+    delivered_at = Column(DateTime(timezone=True), nullable=True)
+
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class Depot(Base):
+    __tablename__ = "depots"
+
+    id = Column(String(32), primary_key=True)
+    name = Column(String(64), nullable=False)
+    x = Column(Integer, nullable=False)
+    y = Column(Integer, nullable=False)
+    z = Column(Integer, nullable=False)
+    dimension = Column(String(20), default="overworld")
+    quadrant = Column(String(10), nullable=True)
+    inventory = Column(JSON, default=dict)
+    reserved_inventory = Column(JSON, default=dict)
+    is_active = Column(Boolean, default=True)
+    last_restock = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DeliveryJob(Base):
+    __tablename__ = "delivery_jobs"
+
+    id = Column(String(32), primary_key=True)
+    order_id = Column(String(32), ForeignKey("orders.id"), nullable=False)
+    job_type = Column(String(20), nullable=False)
+    depot_id = Column(String(32), ForeignKey("depots.id"), nullable=True)
+    status = Column(String(30), default="queued")
+    payload = Column(JSON, default=dict)
+    attempts = Column(Integer, default=0)
+    bot_id = Column(String(64), nullable=True)
+    result = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    order = relationship("Order")
+
+
+# SQLite engine factory
+engine = create_engine("sqlite:///./store.db", connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
