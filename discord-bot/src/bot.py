@@ -80,6 +80,9 @@ async def order_status(interaction: discord.Interaction, order_id: str):
 
 
 if __name__ == "__main__":
-    if not DISCORD_TOKEN:
-        raise RuntimeError("DISCORD_TOKEN not set")
+    if not DISCORD_TOKEN or DISCORD_TOKEN == "your-bot-token-here":
+        raise RuntimeError(
+            "DISCORD_TOKEN is not set. "
+            "Copy discord-bot/.env.example to .env and paste your bot token."
+        )
     bot.run(DISCORD_TOKEN)

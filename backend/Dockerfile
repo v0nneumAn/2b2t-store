@@ -13,7 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 
 ENV PYTHONPATH=/app
-ENV DATABASE_URL=sqlite:///./store.db
 
 EXPOSE 8000
 

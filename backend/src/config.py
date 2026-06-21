@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # Database
-    database_url: str = "sqlite:///./store.db"
+    database_url: str = "postgresql+psycopg2://store:store@localhost:5432/store"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

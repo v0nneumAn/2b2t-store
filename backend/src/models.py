@@ -6,6 +6,8 @@ from sqlalchemy import Column, String, Numeric, Integer, Boolean, DateTime, Text
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy.sql import func
 
+from .config import get_settings
+
 Base = declarative_base()
 
 
@@ -129,8 +131,14 @@ class DeliveryJob(Base):
     order = relationship("Order")
 
 
-# SQLite engine factory
-engine = create_engine("sqlite:///./store.db", connect_args={"check_same_thread": False})
+# Engine factory: DATABASE_URL from environment (.env) defaults to PostgreSQL.
+# Override with e.g. DATABASE_URL=sqlite:///./store.db for local SQLite dev.
+_settings = get_settings()
+_engine_kwargs = {}
+if _settings.database_url.startswith("sqlite"):
+    _engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(_settings.database_url, **_engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
