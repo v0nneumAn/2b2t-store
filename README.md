@@ -4,15 +4,31 @@ Privacy-first online store for 2b2t in-game items. Customers order via website o
 
 ## Architecture
 
+> See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full living draft.
+
+High-level plan:
+
 | Component | Tech | Host |
 |-----------|------|------|
-| Backend | Python/FastAPI | kanto dev / pve0 prod |
+| Backend | Python / FastAPI / SQLAlchemy / SQLite | kanto dev / pve0 prod |
 | Website | React + Vite + Tailwind | kanto dev / pve0 prod |
 | Discord Bot | discord.py | kanto dev / pve0 prod |
-| Delivery Bot | Mineflayer (Node) + Python agent | kanto dev / pve0 prod |
+| DeliveryBot | ZenithProxy + custom Java plugin | pve0 / bot host |
+| DeliveryPearl | ZenithProxy alt | pve0 / bot host |
 | Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | pve1 LXC |
-| Database | PostgreSQL 16 | Docker |
-| Cache | Redis 7 | Docker |
+| Test Server | Paper 1.20.1 + GrimAC + Via suite | kanto |
+
+### Delivery model
+
+The target workflow uses an **EnderChest dead-drop** near spawn:
+
+1. `DeliveryBot` fills its EnderChest at stash, `/kill`s to spawn, and logs out.
+2. Customer receives the `/kill` location via Discord ticket and website.
+3. Customer confirms arrival with a Discord reaction or website button.
+4. `DeliveryBot` logs back in, pulls items from the EnderChest, and drops them.
+5. `DeliveryPearl` pearls `DeliveryBot` back to stash to reset for the next order.
+
+The existing `delivery-bot/` directory is a temporary Mineflayer scaffold for early prototyping.
 
 ## Quick Start
 
@@ -89,7 +105,8 @@ The pruned Monero node runs on pve1. See `monero-node/docker-compose.yml`.
 ├── backend/          FastAPI backend
 ├── web/              React storefront
 ├── discord-bot/      Discord cart bot
-├── delivery-bot/     Mineflayer delivery worker
+├── delivery-bot/     Temporary Mineflayer scaffold (target: ZenithProxy plugin)
+├── docs/             Architecture drafts and design notes
 ├── monero-node/      Docker compose for pve1
 ├── paper-server/     Local Paper test server scripts
 └── docker/           Local dev compose
