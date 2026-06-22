@@ -1,0 +1,98 @@
+name: 2b2t-store-advert
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: store
+      POSTGRES_PASSWORD: store
+      POSTGRES_DB: store
+    volumes:
+      - advert_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U store -d store"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://store:store@postgres:5432/store
+      REDIS_URL: redis://redis:6379/0
+      BOT_API_KEY: change-me-in-production
+      MIN_ORDER_USD: "10.0"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../backend:/app
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  paper:
+    image: eclipse-temurin:21-jre
+    working_dir: /paper
+    volumes:
+      - ../paper-server/server:/paper
+    ports:
+      - "25565:25565"
+    command: ["java", "-jar", "paper-1.20.1-196.jar", "--nogui"]
+    environment:
+      EULA: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 25565"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  adbot-alpha:
+    build:
+      context: ../advert-bot
+      dockerfile: Dockerfile
+    environment:
+      ZENITH_CONFIG_authentication_accountType: offline
+      ZENITH_CONFIG_authentication_username: adbot-alpha
+      ZENITH_CONFIG_client_server_address: paper
+      ZENITH_CONFIG_client_server_port: "25565"
+      ZENITH_CONFIG_client_autoConnect: "true"
+      ZENITH_CONFIG_server_bind_port: "25566"
+    volumes:
+      - ../advert-bot/config/adbot-alpha:/zenith/advert-bot/config:ro
+    depends_on:
+      paper:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  adbot-beta:
+    build:
+      context: ../advert-bot
+      dockerfile: Dockerfile
+    environment:
+      ZENITH_CONFIG_authentication_accountType: offline
+      ZENITH_CONFIG_authentication_username: adbot-beta
+      ZENITH_CONFIG_client_server_address: paper
+      ZENITH_CONFIG_client_server_port: "25565"
+      ZENITH_CONFIG_client_autoConnect: "true"
+      ZENITH_CONFIG_server_bind_port: "25567"
+    volumes:
+      - ../advert-bot/config/adbot-beta:/zenith/advert-bot/config:ro
+    depends_on:
+      paper:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+volumes:
+  advert_postgres_data:

@@ -10,12 +10,12 @@ High-level plan:
 
 | Component | Tech | Host |
 |-----------|------|------|
-| Backend | Python / FastAPI / SQLAlchemy / SQLite | dev host / pve0 prod |
-| Website | React + Vite + Tailwind | dev host / pve0 prod |
-| Discord Bot | discord.py | dev host / pve0 prod |
-| DeliveryBot | ZenithProxy + custom Java plugin | pve0 / bot host |
-| DeliveryPearl | ZenithProxy alt | pve0 / bot host |
-| Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | pve1 LXC |
+| Backend | Python / FastAPI / SQLAlchemy / SQLite | dev host / prod host |
+| Website | React + Vite + Tailwind | dev host / prod host |
+| Discord Bot | discord.py | dev host / prod host |
+| DeliveryBot | ZenithProxy + custom Java plugin | prod host / bot host |
+| DeliveryPearl | ZenithProxy alt | prod host / bot host |
+| Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | dedicated Monero host |
 | Test Server | Paper 1.20.1 + GrimAC + Via suite | dev host |
 
 ### Delivery model
@@ -83,18 +83,18 @@ npm install
 npm run dev
 ```
 
-## Monero Node (pve1)
+## Monero Node
 
-The pruned Monero node runs on pve1. See `monero-node/docker-compose.yml`.
+The pruned Monero node runs on a dedicated host. See `monero-node/docker-compose.yml`.
 
 1. Create wallet file and `wallet_password.txt`.
-2. Deploy compose on pve1 LXC.
+2. Deploy compose on the Monero host.
 3. Wait for sync.
-4. Point backend `MONERO_WALLET_RPC_URL` to pve1.
+4. Point backend `MONERO_WALLET_RPC_URL` to the Monero host.
 
 ## Development Notes
 
-- Scaffold is built on the dev host. Production deployment target is pve0.
+- Scaffold is built on the dev host. Production deployment target is the prod host.
 - `$10 USD` minimum order enforced at checkout.
 - 4-depot system planned; depot coords configured via admin API.
 
@@ -107,7 +107,7 @@ The pruned Monero node runs on pve1. See `monero-node/docker-compose.yml`.
 ├── discord-bot/      Discord cart bot
 ├── delivery-bot/     Temporary Mineflayer scaffold (target: ZenithProxy plugin)
 ├── docs/             Architecture drafts and design notes
-├── monero-node/      Docker compose for pve1
+├── monero-node/      Docker compose for pruned Monero node
 ├── paper-server/     Local Paper test server scripts
 └── docker/           Local dev compose
 ```

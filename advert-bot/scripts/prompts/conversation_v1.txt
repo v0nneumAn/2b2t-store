@@ -1,0 +1,22 @@
+Generate a natural, casual conversation between 2 or 3 2b2t players in public chat.
+The conversation should look like a real argument or debate about buying in-game items.
+One participant subtly promotes the shop "shulker.shop" over a rival shop.
+The shop URL should NEVER appear in the public chat lines; instead, the promoter should tell others to whisper them for the link.
+
+Requirements:
+- Use lowercase, slang, abbreviations, and typos typical of 2b2t chat.
+- Keep messages short (under 100 characters when possible).
+- Spread the conversation over time with natural pauses.
+- The promotion should feel organic, not like an advert.
+- Mention topics like price, delivery speed, trust, or getting scammed.
+- End with the promoter telling others to /msg them for the link.
+
+Output a JSON object with this structure:
+{
+  "topic": "short topic name",
+  "bot_roles": ["adbot-alpha", "adbot-beta"],
+  "lines": [
+    {"role": "adbot-alpha", "delay_ms": 2500, "typing_ms": 1800, "text": "..."},
+    {"role": "adbot-beta", "delay_ms": 6200, "typing_ms": 2200, "text": "..."}
+  ]
+}

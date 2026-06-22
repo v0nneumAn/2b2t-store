@@ -10,11 +10,11 @@
 | **Description** | Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Monero, and receive delivery through autonomous bots. |
 | **Canonical repo** | `Shulker-Shop/skeleton` |
 | **Related repos** | `Shulker-Shop/DeliveryPlugin`, `Shulker-Shop/Docker` |
-| **Local path** | Project root (e.g., `~/sandbox/2b2t-store/`) |
+| **Local path** | Project root |
 
 ## 2. Design Decisions (Locked In)
 
-- **Payments:** Monero only, `$10 USD` minimum order.
+- **Payments:** Third-party provider (Stripe) to reduce friction, `$10 USD` minimum order. Monero integration deprioritized.
 - **Delivery model:** EnderChest dead-drop near spawn. Bot never meets the customer directly.
 - **Bot platform:** ZenithProxy + custom Java plugin. Mineflayer scaffold exists only for early prototyping.
 - **Two-bot system:**
@@ -47,24 +47,14 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 
 | Repo | Purpose | Access Status |
 |------|---------|---------------|
-| `Shulker-Shop/skeleton` | Canonical monorepo (backend, web, discord-bot, delivery-bot scaffold, docs) | Push via `origin` using `github-skeleton` SSH host |
+| `Shulker-Shop/skeleton` | Canonical monorepo (backend, web, discord-bot, delivery-bot scaffold, docs) | Push via `origin` using project SSH host |
 | `Shulker-Shop/DeliveryPlugin` | Java plugin for ZenithProxy | Read/write access verified |
 | `Shulker-Shop/Docker` | Docker/deployment configs | Read/write access verified |
 
-### SSH setup
+### SSH / Git setup
 
-- Key: `~/.ssh/id_ed25519_skeleton`
-- Config host: `github-skeleton` → `github.com` with `IdentityFile ~/.ssh/id_ed25519_skeleton`
-- Authenticates as GitHub user: `shulker-mechanic`
-- Note: key was passphrase-protected; must be unlocked via `ssh-add` or passphrase removed for automated use.
-- Old personal account remotes have been removed from this checkout.
-
-### Git config
-
-- `user.name` → `shulker-mechanic`
-- `user.email` → `shulker-mechanic@users.noreply.github.com`
-- Full commit history was rewritten and force-pushed to remove old personal author metadata.
-- Old personal repo still exists on GitHub but is no longer referenced here; delete it manually if you want it gone.
+- Configure Git with the project identity before committing.
+- Use a dedicated SSH key for the `Shulker-Shop` org; do not commit keys or personal account references.
 
 ## 5. Current Stack State
 
@@ -75,8 +65,9 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 | Web frontend | ✅ Builds | Home, Shop, Cart, Checkout, Order pages |
 | Discord bot | ⚠️ Scaffolded | `.env.example` and README added; needs `DISCORD_TOKEN` |
 | Delivery bot | ⚠️ Mineflayer scaffold | `executeJob()` is placeholder; target is ZenithProxy plugin |
-| Monero node | ❌ Not deployed | pve1 pruned node planned; wallet RPC not running |
+| Monero node | ❌ Deprioritized | Third-party payments (Stripe) replace Monero for now |
 | Paper test server | ✅ Ready | Paper 1.20.1 + GrimAC + Via suite downloaded locally |
+| Advert bot | ⚠️ Skeleton built | ZenithProxy fake-conversation advert bot scaffolded |
 | Admin auth | ❌ Missing | Admin routes are open |
 | XMR/USD rate | ❌ Hardcoded | `$150` placeholder; needs CoinGecko or similar |
 
@@ -108,7 +99,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 │   ├── src/jobs.js
 │   ├── src/agent.py
 │   └── README.md
-├── monero-node/          Docker compose for pve1 pruned node
+├── monero-node/          Docker compose for pruned Monero node
 ├── paper-server/         Local Paper 1.20.1 test server scripts
 ├── docker/               docker-compose.yml for backend deps
 └── docs/
@@ -127,10 +118,14 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 - [ ] **Web:** Add "I am at the location" confirmation button and live order status polling.
 - [ ] **ZenithProxy plugin:** Start `DeliveryPlugin` skeleton (Gradle project, hook into ZenithProxy API).
 - [ ] **ZenithProxy plugin:** Implement "fill EnderChest from chest" proof-of-concept.
-- [ ] **Accounts:** Get `DeliveryBot` and `DeliveryPearl` Minecraft usernames from partner.
-- [ ] **Depots:** Get depot overworld coordinates and security design from partner.
+- [ ] **Accounts:** Get `DeliveryBot` and `DeliveryPearl` Minecraft usernames.
+- [ ] **Depots:** Get depot overworld coordinates and security design.
 - [ ] **Test:** Run local Paper server and validate plugin/bot behavior.
-- [ ] **Deploy:** Set up pve1 LXC for pruned Monero node.
+- [ ] **Advert bot:** Finalize bot usernames, competitor names, and OpenAI key.
+- [ ] **Advert bot:** Generate and approve first conversation scripts.
+- [ ] **Advert bot:** Integrate real ZenithProxy plugin API once dependency is available.
+- [ ] **Payments:** Evaluate Stripe integration for backend and checkout.
+- [ ] **Deploy:** Set up dedicated host for pruned Monero node (deprioritized).
 
 ## 8. Key Technical Notes
 
@@ -152,6 +147,9 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 ## 10. Related Documents
 
 - `docs/ARCHITECTURE.md` — full architecture draft
+- `docs/GLOSSARY.md` — in-game and operational terminology
+- `docs/ZENITHPROXY.md` — ZenithProxy plugin/channel research
+- `advert-bot/README.md` — advert bot design and setup
 - `delivery-bot/README.md` — note that Mineflayer bot is temporary scaffold
 - `discord-bot/README.md` — Discord bot setup
 - User uploaded plan: `2b2t-delivery-bot-plan_617a8c.md` — earlier Mineflayer-based design (superseded by ZenithProxy decision)

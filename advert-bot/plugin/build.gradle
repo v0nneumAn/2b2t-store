@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+}
+
+group = maven_group
+version = '0.1.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'zenith-snapshots'
+        url = 'https://maven.2b2t.vc/snapshots/'
+    }
+    maven {
+        name = 'zenith-releases'
+        url = 'https://maven.2b2t.vc/releases/'
+    }
+}
+
+dependencies {
+    compileOnly('com.zenith:ZenithProxy:' + mc + '-SNAPSHOT') {
+        transitive = false
+    }
+    compileOnly('com.github.rfresh2:SimpleEventBus:1.6') {
+        transitive = false
+    }
+    compileOnly('net.kyori:adventure-api:5.1.1') {
+        transitive = false
+    }
+    compileOnly('net.kyori:adventure-text-logger-slf4j:5.1.1') {
+        transitive = false
+    }
+    implementation 'com.google.code.gson:gson:2.10.1'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+jar {
+    archiveFileName = "${plugin_name}-${version}.jar"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}

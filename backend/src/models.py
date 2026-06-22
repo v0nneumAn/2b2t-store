@@ -131,6 +131,66 @@ class DeliveryJob(Base):
     order = relationship("Order")
 
 
+class ConversationScript(Base):
+    __tablename__ = "conversation_scripts"
+
+    id = Column(String(32), primary_key=True)
+    topic = Column(String(100), nullable=False)
+    bot_roles = Column(JSON, default=list)
+    lines = Column(JSON, default=list)
+    status = Column(String(20), default="pending_review")  # pending_review | approved | used
+    used_count = Column(Integer, default=0)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AdvertSchedule(Base):
+    __tablename__ = "advert_schedules"
+
+    id = Column(String(32), primary_key=True)
+    conversation_id = Column(String(32), ForeignKey("conversation_scripts.id"), nullable=False)
+    scheduled_at = Column(DateTime(timezone=True), nullable=False)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    required_bot_roles = Column(JSON, default=list)
+    status = Column(String(20), default="scheduled")  # scheduled | active | completed | cancelled
+
+
+class BotStatus(Base):
+    __tablename__ = "advert_bot_status"
+
+    role = Column(String(64), primary_key=True)
+    in_game = Column(Boolean, default=False)
+    is_queue = Column(Boolean, default=False)
+    queue_position = Column(Integer, nullable=True)
+    conversation_active = Column(Boolean, default=False)
+    last_seen_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Bot(Base):
+    __tablename__ = "bots"
+
+    id = Column(String(32), primary_key=True)
+    role = Column(String(64), nullable=False, unique=True)
+    bot_type = Column(String(20), nullable=False)  # advert | delivery | pearl
+    account_name = Column(String(64), nullable=True)
+    status = Column(String(20), default="active")  # active | paused | disabled
+    config = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class BotCommand(Base):
+    __tablename__ = "bot_commands"
+
+    id = Column(String(32), primary_key=True)
+    bot_role = Column(String(64), nullable=False)
+    command = Column(String(50), nullable=False)  # pause | resume | stop | restart
+    payload = Column(JSON, nullable=True)
+    acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 # Engine factory: DATABASE_URL from environment (.env) defaults to PostgreSQL.
 # Override with e.g. DATABASE_URL=sqlite:///./store.db for local SQLite dev.
 _settings = get_settings()

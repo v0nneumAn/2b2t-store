@@ -1,0 +1,139 @@
+from datetime import datetime
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Header
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from .. import models
+from ..models import get_db
+from ..config import get_settings
+
+router = APIRouter(prefix="/api/bots", tags=["bots"])
+
+settings = get_settings()
+
+
+def verify_bot_key(x_bot_key: str = Header(...)):
+    if x_bot_key != settings.bot_api_key:
+        raise HTTPException(status_code=403, detail="Invalid bot API key")
+    return True
+
+
+class BotCreate(BaseModel):
+    id: str
+    role: str
+    bot_type: str = Field(..., pattern="^(advert|delivery|pearl)$")
+    account_name: Optional[str] = None
+    status: str = "active"
+    config: dict = Field(default_factory=dict)
+
+
+class BotResponse(BaseModel):
+    id: str
+    role: str
+    bot_type: str
+    account_name: Optional[str]
+    status: str
+    config: dict
+
+    class Config:
+        from_attributes = True
+
+
+class BotCommandCreate(BaseModel):
+    command: str = Field(..., pattern="^(pause|resume|stop|restart)$")
+    payload: Optional[dict] = None
+
+
+class BotCommandResponse(BaseModel):
+    id: str
+    bot_role: str
+    command: str
+    payload: Optional[dict]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.post("", response_model=BotResponse)
+def create_bot(
+    payload: BotCreate,
+    db: Session = Depends(get_db),
+    _=Depends(verify_bot_key),
+):
+    existing = db.query(models.Bot).filter(models.Bot.role == payload.role).first()
+    if existing:
+        raise HTTPException(status_code=409, detail="Bot role already exists")
+    bot = models.Bot(**payload.model_dump())
+    db.add(bot)
+    db.commit()
+    db.refresh(bot)
+    return bot
+
+
+@router.get("", response_model=List[BotResponse])
+def list_bots(
+    bot_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _=Depends(verify_bot_key),
+):
+    query = db.query(models.Bot)
+    if bot_type:
+        query = query.filter(models.Bot.bot_type == bot_type)
+    return query.all()
+
+
+@router.get("/{role}", response_model=BotResponse)
+def get_bot(
+    role: str,
+    db: Session = Depends(get_db),
+    _=Depends(verify_bot_key),
+):
+    bot = db.query(models.Bot).filter(models.Bot.role == role).first()
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    return bot
+
+
+@router.post("/{role}/commands", response_model=BotCommandResponse)
+def create_command(
+    role: str,
+    payload: BotCommandCreate,
+    db: Session = Depends(get_db),
+    _=Depends(verify_bot_key),
+):
+    bot = db.query(models.Bot).filter(models.Bot.role == role).first()
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    cmd = models.BotCommand(
+        id=f"cmd-{role}-{int(datetime.utcnow().timestamp() * 1000)}",
+        bot_role=role,
+        command=payload.command,
+        payload=payload.payload,
+    )
+    db.add(cmd)
+    db.commit()
+    db.refresh(cmd)
+    return cmd
+
+
+@router.get("/{role}/commands/next", response_model=Optional[BotCommandResponse])
+def next_command(
+    role: str,
+    db: Session = Depends(get_db),
+    _=Depends(verify_bot_key),
+):
+    cmd = (
+        db.query(models.BotCommand)
+        .filter(
+            models.BotCommand.bot_role == role,
+            models.BotCommand.acknowledged_at.is_(None),
+        )
+        .order_by(models.BotCommand.created_at)
+        .first()
+    )
+    if cmd:
+        cmd.acknowledged_at = datetime.utcnow()
+        db.commit()
+    return cmd

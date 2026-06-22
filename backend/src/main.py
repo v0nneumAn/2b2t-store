@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import models
-from .routes import products, cart, orders, payments, admin, bot
+from .routes import products, cart, orders, payments, admin, bot, advert, bots
 
 
 @asynccontextmanager
@@ -36,6 +36,8 @@ app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
 app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(bot.router, prefix="/api/bot", tags=["bot"])
+app.include_router(advert.router)
+app.include_router(bots.router)
 
 
 @app.get("/health")

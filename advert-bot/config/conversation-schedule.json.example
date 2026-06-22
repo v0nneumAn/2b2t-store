@@ -1,0 +1,7 @@
+{
+  "interval_minutes": 45,
+  "interval_jitter_minutes": 5,
+  "required_bot_roles": ["adbot-alpha", "adbot-beta"],
+  "auto_start": true,
+  "review_required": true
+}

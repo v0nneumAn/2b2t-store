@@ -1,0 +1,16 @@
+{
+  "backend_url": "http://backend:8000",
+  "bot_api_key": "change-me-in-production",
+  "bot_role": "adbot-alpha",
+  "shop_shortlink": "shulker.shop",
+  "poll_interval_seconds": 10,
+  "typing_delay": {
+    "min_ms": 1200,
+    "max_ms": 3500
+  },
+  "safety": {
+    "pause_for_non_friends": false,
+    "mute_cooldown_minutes": 15,
+    "max_conversations_per_hour": 2
+  }
+}

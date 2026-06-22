@@ -1,6 +1,6 @@
 version: "3.8"
 
-# Deploy this on pve1 LXC.
+# Deploy this on the dedicated Monero host.
 # monerod runs pruned; wallet-rpc bound to localhost for backend tunnel access.
 
 services:

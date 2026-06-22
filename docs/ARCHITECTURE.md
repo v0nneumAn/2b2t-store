@@ -8,7 +8,7 @@ Privacy-first online store for 2b2t in-game items. Customers order via website o
 
 ## Design Philosophy
 
-- **ZenithProxy-first:** The in-world bot layer runs on [ZenithProxy](https://github.com/rfresh2/ZenithProxy) with a custom Java plugin for store-specific logic. ZenithProxy gives us ViaVersion, 2b2t queue handling, Baritone pathfinding, and survival modules (AutoTotem, AutoRespawn, AutoEat) out of the box.
+- **ZenithProxy-first:** The in-world bot layer runs on [ZenithProxy](https://github.com/rfresh2/ZenithProxy) with a custom Java plugin for store-specific logic. ZenithProxy gives us ViaVersion, 2b2t queue handling, Baritone pathfinding, and survival modules (AutoTotem, AutoRespawn, AutoEat) out of the box. Plugins only work on the `java` release channel, so the bot host must use that channel even if it runs Linux.
 - **Two-bot system:** `DeliveryBot` executes deliveries. `DeliveryPearl` exists only to pearl `DeliveryBot` back to stash after a drop.
 - **EnderChest dead-drop:** The delivery handoff happens through an EnderChest near spawn. The customer travels to a `/kill` location, confirms presence, and the bot drops items nearby.
 - **Iterate quickly:** The existing Mineflayer scaffold in `delivery-bot/` stays for early prototyping, but the target runtime is ZenithProxy.
@@ -17,12 +17,13 @@ Privacy-first online store for 2b2t in-game items. Customers order via website o
 
 | Component | Tech | Purpose | Host |
 |-----------|------|---------|------|
-| Backend | Python / FastAPI / SQLAlchemy / SQLite | Orders, payments, jobs, admin API | dev host / pve0 prod |
-| Website | React + Vite + TypeScript + Tailwind | Storefront, cart, checkout, order status | dev host / pve0 prod |
-| Discord Bot | discord.py | Cart, tickets, delivery notifications, customer confirmation | dev host / pve0 prod |
-| DeliveryBot | ZenithProxy + custom Java plugin | In-world delivery executor | pve0 / dedicated bot host |
-| DeliveryPearl | ZenithProxy or alt account | Pearls DeliveryBot back to stash | pve0 / dedicated bot host |
-| Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | Payment verification | pve1 LXC |
+| Backend | Python / FastAPI / SQLAlchemy / SQLite | Orders, payments, jobs, admin API | dev host / prod host |
+| Website | React + Vite + TypeScript + Tailwind | Storefront, cart, checkout, order status | dev host / prod host |
+| Discord Bot | discord.py | Cart, tickets, delivery notifications, customer confirmation | dev host / prod host |
+| DeliveryBot | ZenithProxy + custom Java plugin | In-world delivery executor | prod host / dedicated bot host |
+| DeliveryPearl | ZenithProxy or alt account | Pearls DeliveryBot back to stash | prod host / dedicated bot host |
+| Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | Payment verification (deprioritized) | dedicated Monero host |
+| Advert Bot | ZenithProxy + custom Java plugin | Fake-conversation advertising in 2b2t chat | prod host / bot host |
 | Test Server | Paper 1.20.1 + GrimAC + Via suite | Local delivery simulation | dev host |
 
 ## EnderChest Delivery Workflow
@@ -81,7 +82,9 @@ Privacy-first online store for 2b2t in-game items. Customers order via website o
 - May remain logged off until needed, or stay in a safe perch.
 - Could also be a ZenithProxy instance or a simple alt controlled by the plugin.
 
-## Plugin Responsibilities
+## Plugin Development Notes
+
+See `docs/ZENITHPROXY.md` for release-channel constraints and built-in commands useful for delivery.
 
 The custom ZenithProxy plugin needs to handle:
 
@@ -134,6 +137,10 @@ Customer ──► Website / Discord ──► Backend
 - **Anti-cheat:** GrimAC may flag repeated `/kill`/respawn, fast inventory actions, or Baritone movement. Needs testing.
 - **Customer confirmation timeout:** How long do we wait? What happens if they never confirm?
 - **Item despawn:** Dropped items despawn after 5 minutes. Customer must be close and ready.
+
+## Advert Bot
+
+The advert bot runs as 2–3 dedicated ZenithProxy alts that simulate a natural conversation in 2b2t public chat every ~45 minutes. One participant subtly promotes the shop (`shulker.shop`) over a rival shop. The URL is only whispered when asked. Conversations are AI-generated, reviewed, and served by the backend scheduler. See `advert-bot/README.md` for details.
 
 ## Migration from Mineflayer Scaffold
 
