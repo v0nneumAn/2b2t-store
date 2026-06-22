@@ -59,6 +59,13 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 - Note: key was passphrase-protected; must be unlocked via `ssh-add` or passphrase removed for automated use.
 - Old personal account remotes have been removed from this checkout.
 
+### Git config
+
+- `user.name` → `shulker-mechanic`
+- `user.email` → `shulker-mechanic@users.noreply.github.com`
+- Full commit history was rewritten and force-pushed to remove old personal author metadata.
+- Old personal repo still exists on GitHub but is no longer referenced here; delete it manually if you want it gone.
+
 ## 5. Current Stack State
 
 | Component | Status | Notes |
@@ -71,7 +78,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 | Monero node | ❌ Not deployed | pve1 pruned node planned; wallet RPC not running |
 | Paper test server | ✅ Ready | Paper 1.20.1 + GrimAC + Via suite downloaded locally |
 | Admin auth | ❌ Missing | Admin routes are open |
-| XMR/USD rate | ❌ Hardcoded | `$150` placeholder; needs CoinGeGecko or similar |
+| XMR/USD rate | ❌ Hardcoded | `$150` placeholder; needs CoinGecko or similar |
 
 ## 6. File Map
 
@@ -111,7 +118,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 
 ## 7. Active TODO
 
-- [ ] **Decision:** Split monorepo into org repos? Skeleton is already mirrored; DeliveryPlugin and Docker are separate.
+- [x] **Decision:** Canonical repo is `Shulker-Shop/skeleton`. `DeliveryPlugin` and `Docker` are separate org repos.
 - [ ] **Backend:** Finish Monero integration (needs `monero-wallet-rpc` running).
 - [ ] **Backend:** Replace hardcoded XMR/USD rate with live API.
 - [ ] **Backend:** Add admin authentication.
