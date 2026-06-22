@@ -8,7 +8,7 @@
 |---|---|
 | **Project** | 2b2t Store (also referred to as Shulker Shop) |
 | **Description** | Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Monero, and receive delivery through autonomous bots. |
-| **Canonical repo** | `Shulker-Shop/skeleton` |
+| **Canonical repo** | `Shulker-Shop/skeleton_scaffold` |
 | **Related repos** | `Shulker-Shop/backend`, `Shulker-Shop/advert-bot`, `Shulker-Shop/DeliveryPlugin`, `Shulker-Shop/Docker` |
 | **Local path** | Project root |
 
@@ -47,7 +47,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 
 | Repo | Purpose | Access Status |
 |------|---------|---------------|
-| `Shulker-Shop/skeleton` | Canonical monorepo (backend, web, discord-bot, delivery-bot scaffold, docs) | Push via `origin` using project SSH host |
+| `Shulker-Shop/skeleton_scaffold` | Canonical monorepo/draft workspace (web, discord-bot, delivery-bot scaffold, docs) | Push via `origin` using project SSH host |
 | `Shulker-Shop/DeliveryPlugin` | Java plugin for ZenithProxy | Read/write access verified |
 | `Shulker-Shop/Docker` | Docker/deployment configs | Read/write access verified |
 
@@ -109,7 +109,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 
 ## 7. Active TODO
 
-- [x] **Decision:** Canonical repo is `Shulker-Shop/skeleton`. `DeliveryPlugin` and `Docker` are separate org repos.
+- [x] **Decision:** Canonical repo is `Shulker-Shop/skeleton_scaffold`. Backend and advert-bot moved to standalone repos.
 - [ ] **Backend:** Finish Monero integration (needs `monero-wallet-rpc` running).
 - [ ] **Backend:** Replace hardcoded XMR/USD rate with live API.
 - [ ] **Backend:** Add admin authentication.

@@ -43,7 +43,7 @@ runcmd:
   - |
     su - kimi -c "cd /home/kimi && git config --global user.name 'shulker-mechanic' && git config --global user.email 'shulker-mechanic@users.noreply.github.com'"
   - |
-    su - kimi -c "cd /home/kimi && git clone git@github-skeleton:Shulker-Shop/skeleton.git 2b2t-store || true"
+    su - kimi -c "cd /home/kimi && git clone git@github-skeleton:Shulker-Shop/skeleton_scaffold.git 2b2t-store || true"
   - echo "Testbed setup complete" > /home/kimi/setup-complete.txt
 
 final_message: "2b2t Store testbed VM is ready. Rebooting now."

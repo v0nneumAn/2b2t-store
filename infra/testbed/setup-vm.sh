@@ -26,7 +26,7 @@ git config --global user.email "shulker-mechanic@users.noreply.github.com"
 
 # Clone skeleton if not present
 if [ ! -d "$HOME/2b2t-store" ]; then
-    git clone git@github-skeleton:Shulker-Shop/skeleton.git "$HOME/2b2t-store"
+    git clone git@github-skeleton:Shulker-Shop/skeleton_scaffold.git "$HOME/2b2t-store"
 fi
 
 echo "Testbed setup complete. Log out and back in for docker group to take effect."
