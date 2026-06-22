@@ -9,7 +9,7 @@
 | **Project** | 2b2t Store (also referred to as Shulker Shop) |
 | **Description** | Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Monero, and receive delivery through autonomous bots. |
 | **Canonical repo** | `Shulker-Shop/skeleton` |
-| **Related repos** | `Shulker-Shop/DeliveryPlugin`, `Shulker-Shop/Docker` |
+| **Related repos** | `Shulker-Shop/backend`, `Shulker-Shop/advert-bot`, `Shulker-Shop/DeliveryPlugin`, `Shulker-Shop/Docker` |
 | **Local path** | Project root |
 
 ## 2. Design Decisions (Locked In)
@@ -149,6 +149,8 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 - `docs/ARCHITECTURE.md` — full architecture draft
 - `docs/GLOSSARY.md` — in-game and operational terminology
 - `docs/ZENITHPROXY.md` — ZenithProxy plugin/channel research
+- `Shulker-Shop/backend` — standalone backend service
+- `Shulker-Shop/advert-bot` — standalone advert bot
 - `advert-bot/README.md` — advert bot design and setup
 - `delivery-bot/README.md` — note that Mineflayer bot is temporary scaffold
 - `discord-bot/README.md` — Discord bot setup

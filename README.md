@@ -15,7 +15,8 @@ High-level plan:
 | Discord Bot | discord.py | dev host / prod host |
 | DeliveryBot | ZenithProxy + custom Java plugin | prod host / bot host |
 | DeliveryPearl | ZenithProxy alt | prod host / bot host |
-| Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | dedicated Monero host |
+| Advert Bot | ZenithProxy + custom Java plugin | prod host / bot host |
+| Monero Node | `monerod` + `monero-wallet-rpc` (pruned, deprioritized) | dedicated Monero host |
 | Test Server | Paper 1.20.1 + GrimAC + Via suite | dev host |
 
 ### Delivery model
@@ -98,16 +99,25 @@ The pruned Monero node runs on a dedicated host. See `monero-node/docker-compose
 - `$10 USD` minimum order enforced at checkout.
 - 4-depot system planned; depot coords configured via admin API.
 
+## Related Repos
+
+- [`Shulker-Shop/backend`](https://github.com/Shulker-Shop/backend) — standalone FastAPI backend
+- [`Shulker-Shop/advert-bot`](https://github.com/Shulker-Shop/advert-bot) — standalone 2b2t advert bot
+- `Shulker-Shop/DeliveryPlugin` — ZenithProxy delivery plugin (future)
+- `Shulker-Shop/Docker` — deployment configs (future)
+
 ## Project Structure
 
 ```
 2b2t-store/
-├── backend/          FastAPI backend
+├── backend/          FastAPI backend (also mirrored in Shulker-Shop/backend)
 ├── web/              React storefront
 ├── discord-bot/      Discord cart bot
 ├── delivery-bot/     Temporary Mineflayer scaffold (target: ZenithProxy plugin)
+├── advert-bot/       ZenithProxy advert bot (also mirrored in Shulker-Shop/advert-bot)
 ├── docs/             Architecture drafts and design notes
 ├── monero-node/      Docker compose for pruned Monero node
 ├── paper-server/     Local Paper test server scripts
+├── infra/            Testbed VM provisioning
 └── docker/           Local dev compose
 ```
