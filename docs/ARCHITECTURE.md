@@ -17,13 +17,13 @@ Privacy-first online store for 2b2t in-game items. Customers order via website o
 
 | Component | Tech | Purpose | Host |
 |-----------|------|---------|------|
-| Backend | Python / FastAPI / SQLAlchemy / SQLite | Orders, payments, jobs, admin API | kanto dev / pve0 prod |
-| Website | React + Vite + TypeScript + Tailwind | Storefront, cart, checkout, order status | kanto dev / pve0 prod |
-| Discord Bot | discord.py | Cart, tickets, delivery notifications, customer confirmation | kanto dev / pve0 prod |
+| Backend | Python / FastAPI / SQLAlchemy / SQLite | Orders, payments, jobs, admin API | dev host / pve0 prod |
+| Website | React + Vite + TypeScript + Tailwind | Storefront, cart, checkout, order status | dev host / pve0 prod |
+| Discord Bot | discord.py | Cart, tickets, delivery notifications, customer confirmation | dev host / pve0 prod |
 | DeliveryBot | ZenithProxy + custom Java plugin | In-world delivery executor | pve0 / dedicated bot host |
 | DeliveryPearl | ZenithProxy or alt account | Pearls DeliveryBot back to stash | pve0 / dedicated bot host |
 | Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | Payment verification | pve1 LXC |
-| Test Server | Paper 1.20.1 + GrimAC + Via suite | Local delivery simulation | kanto |
+| Test Server | Paper 1.20.1 + GrimAC + Via suite | Local delivery simulation | dev host |
 
 ## EnderChest Delivery Workflow
 

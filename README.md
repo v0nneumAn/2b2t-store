@@ -10,13 +10,13 @@ High-level plan:
 
 | Component | Tech | Host |
 |-----------|------|------|
-| Backend | Python / FastAPI / SQLAlchemy / SQLite | kanto dev / pve0 prod |
-| Website | React + Vite + Tailwind | kanto dev / pve0 prod |
-| Discord Bot | discord.py | kanto dev / pve0 prod |
+| Backend | Python / FastAPI / SQLAlchemy / SQLite | dev host / pve0 prod |
+| Website | React + Vite + Tailwind | dev host / pve0 prod |
+| Discord Bot | discord.py | dev host / pve0 prod |
 | DeliveryBot | ZenithProxy + custom Java plugin | pve0 / bot host |
 | DeliveryPearl | ZenithProxy alt | pve0 / bot host |
 | Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | pve1 LXC |
-| Test Server | Paper 1.20.1 + GrimAC + Via suite | kanto |
+| Test Server | Paper 1.20.1 + GrimAC + Via suite | dev host |
 
 ### Delivery model
 
@@ -41,7 +41,7 @@ docker compose up -d
 
 ### 2. Seed products
 
-Requires Python 3.12. On kanto (Python 3.14 default), use `uv`:
+Requires Python 3.12. If the dev host has a newer default Python, use `uv`:
 
 ```bash
 cd backend
@@ -94,7 +94,7 @@ The pruned Monero node runs on pve1. See `monero-node/docker-compose.yml`.
 
 ## Development Notes
 
-- Scaffold is built on kanto. Production deployment target is pve0.
+- Scaffold is built on the dev host. Production deployment target is pve0.
 - `$10 USD` minimum order enforced at checkout.
 - 4-depot system planned; depot coords configured via admin API.
 

@@ -8,9 +8,9 @@
 |---|---|
 | **Project** | 2b2t Store (also referred to as Shulker Shop) |
 | **Description** | Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Monero, and receive delivery through autonomous bots. |
-| **Original repo** | `johnedoetheragebaiter-glitch/2b2t-store` |
-| **Target org repos** | `Shulker-Shop/skeleton`, `Shulker-Shop/DeliveryPlugin`, `Shulker-Shop/Docker` |
-| **Local path** | `/home/snorlax/sandbox/2b2t-store/` |
+| **Canonical repo** | `Shulker-Shop/skeleton` |
+| **Related repos** | `Shulker-Shop/DeliveryPlugin`, `Shulker-Shop/Docker` |
+| **Local path** | Project root (e.g., `~/sandbox/2b2t-store/`) |
 
 ## 2. Design Decisions (Locked In)
 
@@ -47,10 +47,9 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 
 | Repo | Purpose | Access Status |
 |------|---------|---------------|
-| `johnedoetheragebaiter-glitch/2b2t-store` | Original monorepo (backend, web, discord-bot, delivery-bot scaffold, docs) | Push via `origin` |
-| `Shulker-Shop/skeleton` | Mirrors the original skeleton code | Push via `skeleton` remote using `github-skeleton` SSH host |
-| `Shulker-Shop/DeliveryPlugin` | Java plugin for ZenithProxy (separate repo) | Read access verified |
-| `Shulker-Shop/Docker` | Docker/deployment configs (separate repo) | Read access verified |
+| `Shulker-Shop/skeleton` | Canonical monorepo (backend, web, discord-bot, delivery-bot scaffold, docs) | Push via `origin` using `github-skeleton` SSH host |
+| `Shulker-Shop/DeliveryPlugin` | Java plugin for ZenithProxy | Read/write access verified |
+| `Shulker-Shop/Docker` | Docker/deployment configs | Read/write access verified |
 
 ### SSH setup
 
@@ -58,6 +57,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 - Config host: `github-skeleton` → `github.com` with `IdentityFile ~/.ssh/id_ed25519_skeleton`
 - Authenticates as GitHub user: `shulker-mechanic`
 - Note: key was passphrase-protected; must be unlocked via `ssh-add` or passphrase removed for automated use.
+- Old personal account remotes have been removed from this checkout.
 
 ## 5. Current Stack State
 
@@ -128,7 +128,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 ## 8. Key Technical Notes
 
 - **Postgres alignment:** Backend config, models, Dockerfile, and `.env.example` are now consistent. Use `DATABASE_URL=sqlite:///./store.db` for local SQLite dev if Postgres isn't running.
-- **Docker Compose:** `docker/docker-compose.yml` exists but `docker compose` is not installed on kanto. Test on a machine with Docker Compose.
+- **Docker Compose:** `docker/docker-compose.yml` exists but `docker compose` is not installed on the dev host. Test on a machine with Docker Compose.
 - **Queue survival:** ZenithProxy handles 2b2t queue natively; this is the main reason for the platform switch.
 - **Anti-cheat:** GrimAC on local test server and 2b2t itself. Real client (ZenithProxy) is less suspicious than Mineflayer for production.
 - **Safety:** Bot deaths expected. Random stash is safest; meetup is highest risk.
