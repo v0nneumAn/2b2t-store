@@ -1,0 +1,9 @@
+{
+  "entrypoint": "com.shulkershop.advert.AdvertPlugin",
+  "id": "shulker-advert",
+  "version": "0.1.0",
+  "description": "Shulker Shop advert bot",
+  "url": "",
+  "authors": ["shulker-mechanic"],
+  "mcVersions": ["1.21.4"]
+}

@@ -18,12 +18,15 @@ public class BackendClient {
         this.config = config;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
+                .version(HttpClient.Version.HTTP_1_1)
                 .build();
         this.gson = new Gson();
     }
 
     public ConversationScript pollNextConversation() {
+        String uri = config.backendUrl + "/api/advert/conversations/next?role=" + config.botRole;
         try {
+            System.out.println("[ShulkerAdvert] Polling backend: " + uri);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(config.backendUrl + "/api/advert/conversations/next?role=" + config.botRole))
                     .header("X-Bot-Key", config.botApiKey)
@@ -40,7 +43,8 @@ public class BackendClient {
             }
             System.err.println("Backend poll failed: " + response.statusCode() + " " + response.body());
         } catch (Exception e) {
-            System.err.println("Backend poll error: " + e.getMessage());
+            System.err.println("Backend poll error: " + e);
+            e.printStackTrace();
         }
         return null;
     }

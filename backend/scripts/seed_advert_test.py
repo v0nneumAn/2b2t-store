@@ -20,6 +20,7 @@ from src.models import SessionLocal
 
 
 def main():
+    models.Base.metadata.create_all(bind=models.engine)
     db = SessionLocal()
 
     # Register advert bots

@@ -17,6 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Install uv so the ZenithProxy launcher can manage its own Python venv.
+RUN curl -fsSL https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
+
 WORKDIR /zenith
 
 # Download and extract the ZenithProxy Python launcher.
@@ -25,6 +29,9 @@ RUN curl -L -o /tmp/zenith-launcher.zip ${ZENITH_LAUNCHER_URL} \
     && unzip -o /tmp/zenith-launcher.zip -d /zenith \
     && rm /tmp/zenith-launcher.zip \
     && chmod +x /zenith/launch.sh
+
+# Pre-configure the launcher to use the Java release channel (required for plugins).
+RUN printf '{\n  "auto_update": true,\n  "auto_update_launcher": true,\n  "release_channel": "java.1.21.4",\n  "version": "0.0.0",\n  "local_version": "0.0.0",\n  "repo_owner": "rfresh2",\n  "repo_name": "ZenithProxy"\n}\n' > /zenith/launch_config.json
 
 # Copy the built plugin into the plugins folder.
 COPY --from=builder /build/plugin/build/libs/*.jar /zenith/plugins/
@@ -36,4 +43,4 @@ ENV ZENITH_DISCORD_DISABLED=true \
     ZENITH_PLATFORM=java \
     ZENITH_MC_VERSION=1.21.4
 
-ENTRYPOINT ["/zenith/launch.sh"]
+ENTRYPOINT ["/zenith/launch.sh", "--unattended", "--env-config"]

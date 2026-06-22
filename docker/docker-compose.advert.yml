@@ -51,10 +51,10 @@ services:
     environment:
       EULA: "true"
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 25565"]
+      test: ["CMD-SHELL", "timeout 2 bash -c 'cat < /dev/null > /dev/tcp/localhost/25565'"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
 
   adbot-alpha:
     build:
