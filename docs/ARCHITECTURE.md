@@ -4,7 +4,7 @@
 
 ## Overview
 
-Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Monero, and receive delivery through an autonomous bot network.
+Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Stripe, and receive delivery through an autonomous bot network.
 
 ## Design Philosophy
 
@@ -22,7 +22,7 @@ Privacy-first online store for 2b2t in-game items. Customers order via website o
 | Discord Bot | discord.py | Cart, tickets, delivery notifications, customer confirmation | dev host / prod host |
 | DeliveryBot | ZenithProxy + custom Java plugin | In-world delivery executor | prod host / dedicated bot host |
 | DeliveryPearl | ZenithProxy or alt account | Pearls DeliveryBot back to stash | prod host / dedicated bot host |
-| Monero Node | `monerod` + `monero-wallet-rpc` (pruned) | Payment verification (deprioritized) | dedicated Monero host |
+| Payment Provider | Stripe Checkout | Card payment processing | Stripe |
 | Advert Bot | ZenithProxy + custom Java plugin | Fake-conversation advertising in 2b2t chat | prod host / bot host |
 | Test Server | Paper 1.20.1 + GrimAC + Via suite | Local delivery simulation | dev host |
 
@@ -100,7 +100,7 @@ The custom ZenithProxy plugin needs to handle:
 
 | State | Meaning |
 |-------|---------|
-| `pending_payment` | Awaiting Monero confirmation |
+| `awaiting_payment` | Awaiting Stripe Checkout completion |
 | `paid` | Payment confirmed, ready for bot |
 | `preparing` | Bot filling EnderChest |
 | `ready_for_pickup` | `/kill` location published, awaiting customer |
@@ -125,6 +125,17 @@ Customer ──► Website / Discord ──► Backend
                     ▼
               DeliveryPearl
 ```
+
+## Payments
+
+Stripe Checkout handles card payments.
+
+1. Customer submits the checkout form.
+2. Backend creates an `Order` in `awaiting_payment` state.
+3. Backend creates a Stripe Checkout Session for the order total.
+4. Frontend redirects the customer to Stripe.
+5. Stripe notifies the backend via webhook (`checkout.session.completed`).
+6. Backend marks the order `paid` and creates a delivery job.
 
 ## Open Questions / Risks
 

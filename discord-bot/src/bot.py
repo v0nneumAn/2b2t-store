@@ -72,7 +72,7 @@ async def order_status(interaction: discord.Interaction, order_id: str):
         order = resp.json()
         await interaction.followup.send(
             f"Order `{order_id}`: **{order['status']}**\n"
-            f"Total: ${order['price_usd']} / {order['price_xmr']} XMR",
+            f"Total: ${order['price_usd']} ({order.get('payment_provider', 'stripe')})",
             ephemeral=True,
         )
     except Exception as e:

@@ -7,14 +7,14 @@
 | | |
 |---|---|
 | **Project** | 2b2t Store (also referred to as Shulker Shop) |
-| **Description** | Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Monero, and receive delivery through autonomous bots. |
+| **Description** | Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Stripe, and receive delivery through autonomous bots. |
 | **Canonical repo** | `Shulker-Shop/skeleton_scaffold` |
 | **Related repos** | `Shulker-Shop/backend`, `Shulker-Shop/advert-bot`, `Shulker-Shop/DeliveryPlugin`, `Shulker-Shop/Docker` |
 | **Local path** | Project root |
 
 ## 2. Design Decisions (Locked In)
 
-- **Payments:** Third-party provider (Stripe) to reduce friction, `$10 USD` minimum order. Monero integration deprioritized.
+- **Payments:** Stripe Checkout for low-friction card payments, `$10 USD` minimum order. Monero integration removed.
 - **Delivery model:** EnderChest dead-drop near spawn. Bot never meets the customer directly.
 - **Bot platform:** ZenithProxy + custom Java plugin. Mineflayer scaffold exists only for early prototyping.
 - **Two-bot system:**
@@ -65,11 +65,10 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 | Web frontend | ✅ Builds | Home, Shop, Cart, Checkout, Order pages |
 | Discord bot | ⚠️ Scaffolded | `.env.example` and README added; needs `DISCORD_TOKEN` |
 | Delivery bot | ⚠️ Mineflayer scaffold | `executeJob()` is placeholder; target is ZenithProxy plugin |
-| Monero node | ❌ Deprioritized | Third-party payments (Stripe) replace Monero for now |
+| Stripe payments | ✅ Integrated | Checkout Session + webhook; keys required in `.env` |
 | Paper test server | ✅ Ready | Paper 1.20.1 + GrimAC + Via suite downloaded locally |
 | Advert bot | ⚠️ Skeleton built | ZenithProxy fake-conversation advert bot scaffolded |
 | Admin auth | ❌ Missing | Admin routes are open |
-| XMR/USD rate | ❌ Hardcoded | `$150` placeholder; needs CoinGecko or similar |
 
 ## 6. File Map
 
@@ -99,7 +98,6 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 │   ├── src/jobs.js
 │   ├── src/agent.py
 │   └── README.md
-├── monero-node/          Docker compose for pruned Monero node
 ├── paper-server/         Local Paper 1.20.1 test server scripts
 ├── docker/               docker-compose.yml for backend deps
 └── docs/
@@ -110,8 +108,7 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 ## 7. Active TODO
 
 - [x] **Decision:** Canonical repo is `Shulker-Shop/skeleton_scaffold`. Backend and advert-bot moved to standalone repos.
-- [ ] **Backend:** Finish Monero integration (needs `monero-wallet-rpc` running).
-- [ ] **Backend:** Replace hardcoded XMR/USD rate with live API.
+- [x] **Payments:** Replace Monero with Stripe Checkout.
 - [ ] **Backend:** Add admin authentication.
 - [ ] **Backend:** Add endpoints for EnderChest handoff location and customer arrival confirmation.
 - [ ] **Discord bot:** Add `DISCORD_TOKEN` and implement ticket / delivery notification flow.
@@ -124,13 +121,13 @@ See `docs/ARCHITECTURE.md` for the full living draft.
 - [ ] **Advert bot:** Finalize bot usernames, competitor names, and OpenAI key.
 - [ ] **Advert bot:** Generate and approve first conversation scripts.
 - [ ] **Advert bot:** Integrate real ZenithProxy plugin API once dependency is available.
-- [ ] **Payments:** Evaluate Stripe integration for backend and checkout.
-- [ ] **Deploy:** Set up dedicated host for pruned Monero node (deprioritized).
+- [ ] **Deploy:** Set up dedicated host for production backend and bots.
 
 ## 8. Key Technical Notes
 
 - **Postgres alignment:** Backend config, models, Dockerfile, and `.env.example` are now consistent. Use `DATABASE_URL=sqlite:///./store.db` for local SQLite dev if Postgres isn't running.
 - **Docker Compose:** `docker/docker-compose.yml` exists but `docker compose` is not installed on the dev host. Test on a machine with Docker Compose.
+- **Stripe webhooks:** For local development, expose the backend with Stripe CLI or a tunnel such as `ngrok` and set `STRIPE_WEBHOOK_SECRET`.
 - **Queue survival:** ZenithProxy handles 2b2t queue natively; this is the main reason for the platform switch.
 - **Anti-cheat:** GrimAC on local test server and 2b2t itself. Real client (ZenithProxy) is less suspicious than Mineflayer for production.
 - **Safety:** Bot deaths expected. Random stash is safest; meetup is highest risk.

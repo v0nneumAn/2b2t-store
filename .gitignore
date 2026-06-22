@@ -40,5 +40,3 @@ advert-bot/generated/*.json
 infra/testbed/kimi-testbed
 infra/testbed/kimi-testbed.pub
 paper-server/server/
-monero-node/wallet_password.txt
-monero-node/wallet/

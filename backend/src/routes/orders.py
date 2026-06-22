@@ -8,8 +8,6 @@ from .. import models
 from ..config import get_settings
 from ..models import get_db, OrderStatus
 from ..services.orders import calculate_order_total
-from ..services.depots import assign_depot
-from ..services.monero import get_monero_client
 
 router = APIRouter()
 
@@ -37,12 +35,6 @@ def create_order(payload: OrderCreate, db: Session = Depends(get_db)):
             detail=f"Minimum order is ${settings.min_order_usd}",
         )
 
-    # Generate Monero subaddress
-    monero = get_monero_client()
-    address, subaddress_index = monero.create_address(label=f"order_{ULID()}")
-    # TODO: fetch real XMR/USD rate
-    price_xmr = total_usd / Decimal("150.0")
-
     order = models.Order(
         id=str(ULID()),
         customer_email=payload.customer_email,
@@ -51,9 +43,6 @@ def create_order(payload: OrderCreate, db: Session = Depends(get_db)):
         delivery_coords=payload.delivery_coords,
         delivery_address=payload.delivery_address,
         price_usd=total_usd,
-        price_xmr=price_xmr,
-        xmr_address=address,
-        xmr_subaddress_index=subaddress_index,
         status=OrderStatus.AWAITING_PAYMENT.value,
     )
     db.add(order)
@@ -92,8 +81,9 @@ def get_payment_status(order_id: str, db: Session = Depends(get_db)):
     return {
         "order_id": order.id,
         "status": order.status,
-        "xmr_address": order.xmr_address,
-        "price_xmr": str(order.price_xmr),
-        "confirmations": order.confirmations,
-        "tx_hash": order.payment_tx_hash,
+        "payment_provider": order.payment_provider,
+        "payment_status": order.payment_status,
+        "payment_intent_id": order.payment_intent_id,
+        "payment_checkout_session_id": order.payment_checkout_session_id,
+        "paid_at": order.paid_at.isoformat() if order.paid_at else None,
     }

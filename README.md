@@ -1,6 +1,6 @@
 # 2b2t Store
 
-Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Monero, and receive delivery through an autonomous bot.
+Privacy-first online store for 2b2t in-game items. Customers order via website or Discord, pay with Stripe, and receive delivery through an autonomous bot.
 
 ## Architecture
 
@@ -16,7 +16,7 @@ High-level plan:
 | DeliveryBot | ZenithProxy + custom Java plugin | prod host / bot host |
 | DeliveryPearl | ZenithProxy alt | prod host / bot host |
 | Advert Bot | ZenithProxy + custom Java plugin | prod host / bot host |
-| Monero Node | `monerod` + `monero-wallet-rpc` (pruned, deprioritized) | dedicated Monero host |
+| Payments | Stripe Checkout | Stripe |
 | Test Server | Paper 1.20.1 + GrimAC + Via suite | dev host |
 
 ### Delivery model
@@ -84,14 +84,14 @@ npm install
 npm run dev
 ```
 
-## Monero Node
+## Stripe Payments
 
-The pruned Monero node runs on a dedicated host. See `monero-node/docker-compose.yml`.
+Payments are processed through Stripe Checkout.
 
-1. Create wallet file and `wallet_password.txt`.
-2. Deploy compose on the Monero host.
-3. Wait for sync.
-4. Point backend `MONERO_WALLET_RPC_URL` to the Monero host.
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Add your Stripe secret, publishable, and webhook secret keys.
+3. For local webhook testing, expose the backend with the Stripe CLI or a tunnel such as `ngrok`.
+4. The checkout flow creates an order, redirects to Stripe, and marks the order paid via webhook.
 
 ## Development Notes
 
@@ -116,7 +116,6 @@ The pruned Monero node runs on a dedicated host. See `monero-node/docker-compose
 ├── delivery-bot/     Temporary Mineflayer scaffold (target: ZenithProxy plugin)
 ├── advert-bot/       ZenithProxy advert bot (also mirrored in Shulker-Shop/advert-bot)
 ├── docs/             Architecture drafts and design notes
-├── monero-node/      Docker compose for pruned Monero node
 ├── paper-server/     Local Paper test server scripts
 ├── infra/            Testbed VM provisioning
 └── docker/           Local dev compose

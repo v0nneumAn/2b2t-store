@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
 
 function Checkout() {
   const { items, total, clearCart } = useCartStore()
-  const navigate = useNavigate()
   const [deliveryType, setDeliveryType] = useState('random')
   const [coords, setCoords] = useState({ x: '', y: '', z: '' })
   const [email, setEmail] = useState('')
@@ -54,8 +52,25 @@ function Checkout() {
       }
 
       const order = await orderRes.json()
+
+      // Create Stripe Checkout session and redirect
+      const checkoutRes = await fetch(`/api/payments/checkout/${order.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success_url: `${window.location.origin}/order/${order.id}?success=true`,
+          cancel_url: `${window.location.origin}/order/${order.id}?canceled=true`,
+        }),
+      })
+
+      if (!checkoutRes.ok) {
+        const data = await checkoutRes.json()
+        throw new Error(data.detail || 'Checkout session failed')
+      }
+
+      const checkout = await checkoutRes.json()
       clearCart()
-      navigate(`/order/${order.id}`)
+      window.location.href = checkout.checkout_url
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -138,7 +153,7 @@ function Checkout() {
           disabled={loading}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-bold py-3 rounded-lg"
         >
-          {loading ? 'Creating order...' : 'Create order & pay with Monero'}
+          {loading ? 'Creating order...' : 'Create order & pay with Stripe'}
         </button>
       </form>
     </div>

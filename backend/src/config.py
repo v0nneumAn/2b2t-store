@@ -12,12 +12,11 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # Monero
-    monero_wallet_rpc_url: str = "http://localhost:18082/json_rpc"
-    monero_wallet_rpc_user: str = ""
-    monero_wallet_rpc_password: str = ""
-    monero_confirmations_required: int = 10
-    monero_price_lock_seconds: int = 900  # 15 minutes
+    # Stripe
+    stripe_secret_key: str = ""
+    stripe_publishable_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_currency: str = "usd"
 
     # Business rules
     min_order_usd: float = 10.0

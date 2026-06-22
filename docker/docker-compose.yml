@@ -9,8 +9,10 @@ services:
     environment:
       - DATABASE_URL=postgresql+psycopg2://store:store@postgres:5432/store
       - REDIS_URL=redis://redis:6379/0
-      - MONERO_WALLET_RPC_URL=http://host.docker.internal:18082/json_rpc
-      - MONERO_CONFIRMATIONS_REQUIRED=10
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_CURRENCY=${STRIPE_CURRENCY:-usd}
       - MIN_ORDER_USD=10.0
       - BOT_API_KEY=change-me-in-production
     volumes:

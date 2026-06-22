@@ -77,13 +77,12 @@ class Order(Base):
     delivery_address = Column(Text, nullable=True)
 
     price_usd = Column(Numeric(12, 4), nullable=False)
-    price_xmr = Column(Numeric(20, 12), nullable=False)
-    xmr_address = Column(String(255), nullable=False)
-    xmr_subaddress_index = Column(Integer, nullable=True)
 
-    status = Column(String(30), default=OrderStatus.AWAITING_PAYMENT.value)
-    payment_tx_hash = Column(String(128), nullable=True)
-    confirmations = Column(Integer, default=0)
+    # Stripe payment fields
+    payment_provider = Column(String(20), default="stripe")
+    payment_intent_id = Column(String(255), nullable=True)
+    payment_checkout_session_id = Column(String(255), nullable=True)
+    payment_status = Column(String(30), default="pending")
     paid_at = Column(DateTime(timezone=True), nullable=True)
 
     assigned_depot_id = Column(String(32), nullable=True)
