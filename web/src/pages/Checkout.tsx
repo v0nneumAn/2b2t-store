@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
 import { getSessionId, sessionHeaders } from '../lib/session'
+import { apiError } from '../lib/api'
 
 type Step = 'account' | 'payment' | 'processing'
 
@@ -64,8 +65,7 @@ function Checkout() {
       })
 
       if (!orderRes.ok) {
-        const data = await orderRes.json()
-        throw new Error(data.detail || 'Order failed')
+        throw await apiError(orderRes)
       }
 
       const order = await orderRes.json()
@@ -76,8 +76,7 @@ function Checkout() {
       })
 
       if (!checkoutRes.ok) {
-        const data = await checkoutRes.json()
-        throw new Error(data.detail || 'Checkout session failed')
+        throw await apiError(checkoutRes)
       }
 
       const checkout = await checkoutRes.json()

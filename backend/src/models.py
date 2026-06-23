@@ -74,6 +74,7 @@ class Order(Base):
     cart_id = Column(String(32), nullable=True)
     customer_email = Column(String(255), nullable=True)
     customer_discord_id = Column(String(64), nullable=True)
+    status = Column(String(20), default="awaiting_payment")
     delivery_type = Column(String(20), nullable=False)
     delivery_coords = Column(JSON, nullable=True)
     delivery_address = Column(Text, nullable=True)

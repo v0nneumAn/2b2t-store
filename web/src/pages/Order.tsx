@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { sessionHeaders } from '../lib/session'
+import { apiError } from '../lib/api'
 
 interface Order {
   id: string
@@ -33,7 +34,7 @@ function Order() {
     const fetchOrder = async () => {
       try {
         const res = await fetch(`/api/orders/${id}`, { headers: sessionHeaders() })
-        if (!res.ok) throw new Error('Order not found')
+        if (!res.ok) throw await apiError(res)
         const data = await res.json()
         setOrder(data)
       } catch (err) {
@@ -63,8 +64,7 @@ function Order() {
         headers: { 'Content-Type': 'application/json' },
       })
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.detail || 'Checkout session failed')
+        throw await apiError(res)
       }
       const data = await res.json()
       window.location.href = data.checkout_url
