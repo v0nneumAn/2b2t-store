@@ -1,5 +1,6 @@
 from decimal import Decimal
 from functools import lru_cache
+from urllib.parse import urljoin
 
 import stripe
 
@@ -15,8 +16,11 @@ class StripeClient:
         settings = get_settings()
         stripe.api_key = settings.stripe_secret_key
         self.currency = settings.stripe_currency
+        self.frontend_url = settings.frontend_url.rstrip("/")
 
-    def create_checkout_session(self, order_id: str, amount_usd: Decimal, success_url: str, cancel_url: str):
+    def create_checkout_session(self, order_id: str, amount_usd: Decimal):
+        success_url = urljoin(self.frontend_url, f"/order/{order_id}?success=true")
+        cancel_url = urljoin(self.frontend_url, f"/order/{order_id}?canceled=true")
         session = stripe.checkout.Session.create(
             line_items=[
                 {

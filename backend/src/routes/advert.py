@@ -1,23 +1,15 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
+from .. import auth
 from .. import models
 from ..models import get_db
-from ..config import get_settings
 
 router = APIRouter(prefix="/api/advert", tags=["advert"])
-
-settings = get_settings()
-
-
-def verify_bot_key(x_bot_key: str = Header(...)):
-    if x_bot_key != settings.bot_api_key:
-        raise HTTPException(status_code=403, detail="Invalid bot API key")
-    return True
 
 
 class ConversationLine(BaseModel):
@@ -57,7 +49,7 @@ class BotStatusUpdate(BaseModel):
 def create_conversation(
     payload: ConversationScriptCreate,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     existing = db.query(models.ConversationScript).filter(models.ConversationScript.id == payload.id).first()
     if existing:
@@ -80,7 +72,7 @@ def create_conversation(
 def next_conversation(
     role: str,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     """Return the next scheduled conversation that includes this bot role."""
     now = datetime.utcnow()
@@ -119,7 +111,7 @@ def next_conversation(
 def approve_conversation(
     conversation_id: str,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     script = db.query(models.ConversationScript).filter(models.ConversationScript.id == conversation_id).first()
     if not script:
@@ -133,7 +125,7 @@ def approve_conversation(
 def complete_conversation(
     conversation_id: str,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     script = db.query(models.ConversationScript).filter(models.ConversationScript.id == conversation_id).first()
     if script:
@@ -158,7 +150,7 @@ def schedule_next_conversation(
     delay_minutes: int = 45,
     required_bot_roles: List[str] = None,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     script = db.query(models.ConversationScript).filter(
         models.ConversationScript.id == conversation_id,
@@ -182,7 +174,7 @@ def schedule_next_conversation(
 def update_bot_status(
     payload: BotStatusUpdate,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     status = db.query(models.BotStatus).filter(models.BotStatus.role == payload.role).first()
     if not status:
@@ -201,6 +193,6 @@ def update_bot_status(
 @router.get("/bots/status")
 def list_bot_status(
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     return db.query(models.BotStatus).all()

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import { sessionHeaders } from '../lib/session'
 
 interface Order {
   id: string
@@ -31,7 +32,7 @@ function Order() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`/api/orders/${id}`)
+        const res = await fetch(`/api/orders/${id}`, { headers: sessionHeaders() })
         if (!res.ok) throw new Error('Order not found')
         const data = await res.json()
         setOrder(data)
@@ -60,10 +61,6 @@ function Order() {
       const res = await fetch(`/api/payments/checkout/${order.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          success_url: `${window.location.origin}/order/${order.id}?success=true`,
-          cancel_url: `${window.location.origin}/order/${order.id}?canceled=true`,
-        }),
       })
       if (!res.ok) {
         const data = await res.json()

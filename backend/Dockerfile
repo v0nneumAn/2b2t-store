@@ -5,7 +5,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r appuser && useradd -r -g appuser appuser
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -13,6 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ ./src/
 
 ENV PYTHONPATH=/app
+
+RUN chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8000
 

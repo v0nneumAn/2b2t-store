@@ -12,7 +12,7 @@ export function loadConfig() {
     auth: 'offline',
     apiPort: 3000,
     backendUrl: 'http://localhost:8000',
-    botApiKey: 'change-me-in-production',
+    botApiKey: process.env.BOT_API_KEY || '',
     maxTravelDistance: 2000,
     dropRange: 5,
     home: { x: 0, y: 64, z: 0 },

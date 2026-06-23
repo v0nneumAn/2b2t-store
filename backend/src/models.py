@@ -71,6 +71,7 @@ class Order(Base):
     __tablename__ = "orders"
 
     id = Column(String(32), primary_key=True)
+    cart_id = Column(String(32), nullable=True)
     customer_email = Column(String(255), nullable=True)
     customer_discord_id = Column(String(64), nullable=True)
     delivery_type = Column(String(20), nullable=False)
@@ -188,6 +189,13 @@ class BotCommand(Base):
     command = Column(String(50), nullable=False)  # pause | resume | stop | restart
     payload = Column(JSON, nullable=True)
     acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ProcessedStripeEvent(Base):
+    __tablename__ = "processed_stripe_events"
+
+    id = Column(String(64), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

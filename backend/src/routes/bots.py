@@ -1,22 +1,14 @@
 from datetime import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from .. import auth
 from .. import models
 from ..models import get_db
-from ..config import get_settings
 
 router = APIRouter(prefix="/api/bots", tags=["bots"])
-
-settings = get_settings()
-
-
-def verify_bot_key(x_bot_key: str = Header(...)):
-    if x_bot_key != settings.bot_api_key:
-        raise HTTPException(status_code=403, detail="Invalid bot API key")
-    return True
 
 
 class BotCreate(BaseModel):
@@ -60,7 +52,7 @@ class BotCommandResponse(BaseModel):
 def create_bot(
     payload: BotCreate,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     existing = db.query(models.Bot).filter(models.Bot.role == payload.role).first()
     if existing:
@@ -76,7 +68,7 @@ def create_bot(
 def list_bots(
     bot_type: Optional[str] = None,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     query = db.query(models.Bot)
     if bot_type:
@@ -88,7 +80,7 @@ def list_bots(
 def get_bot(
     role: str,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     bot = db.query(models.Bot).filter(models.Bot.role == role).first()
     if not bot:
@@ -101,7 +93,7 @@ def create_command(
     role: str,
     payload: BotCommandCreate,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     bot = db.query(models.Bot).filter(models.Bot.role == role).first()
     if not bot:
@@ -122,7 +114,7 @@ def create_command(
 def next_command(
     role: str,
     db: Session = Depends(get_db),
-    _=Depends(verify_bot_key),
+    _=Depends(auth.require_bot_key),
 ):
     cmd = (
         db.query(models.BotCommand)

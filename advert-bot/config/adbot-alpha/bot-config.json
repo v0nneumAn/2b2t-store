@@ -1,6 +1,6 @@
 {
   "backend_url": "http://backend:8000",
-  "bot_api_key": "change-me-in-production",
+  "bot_api_key": "<BOT_API_KEY>",
   "bot_role": "adbot-alpha",
   "shop_shortlink": "shulker.shop",
   "poll_interval_seconds": 10,

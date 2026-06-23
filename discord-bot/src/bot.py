@@ -79,10 +79,15 @@ async def order_status(interaction: discord.Interaction, order_id: str):
         await interaction.followup.send(f"Error: {e}", ephemeral=True)
 
 
+def _is_valid_discord_token(token: str) -> bool:
+    # Discord tokens are ~70 chars: base64 user id + 6 dots + base64 hmac
+    return bool(token) and len(token) >= 50 and token.count(".") >= 2
+
+
 if __name__ == "__main__":
-    if not DISCORD_TOKEN or DISCORD_TOKEN == "your-bot-token-here":
+    if not DISCORD_TOKEN or DISCORD_TOKEN == "your-bot-token-here" or not _is_valid_discord_token(DISCORD_TOKEN):
         raise RuntimeError(
-            "DISCORD_TOKEN is not set. "
+            "DISCORD_TOKEN is not set or invalid. "
             "Copy discord-bot/.env.example to .env and paste your bot token."
         )
     bot.run(DISCORD_TOKEN)

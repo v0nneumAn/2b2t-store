@@ -4,26 +4,37 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     app_name: str = "2b2t Store Backend"
-    debug: bool = True
+    debug: bool = False
 
-    # Database
-    database_url: str = "postgresql+psycopg2://store:store@localhost:5432/store"
+    # Database (no default password; must be supplied via env)
+    database_url: str
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
     # Stripe
-    stripe_secret_key: str = ""
-    stripe_publishable_key: str = ""
-    stripe_webhook_secret: str = ""
+    stripe_secret_key: str
+    stripe_publishable_key: str
+    stripe_webhook_secret: str
     stripe_currency: str = "usd"
 
     # Business rules
     min_order_usd: float = 10.0
     cart_ttl_seconds: int = 86400  # 24 hours
 
-    # Bot
-    bot_api_key: str = "change-me-in-production"
+    # Bot / Admin API keys (no defaults; required for production)
+    bot_api_key: str
+    admin_api_key: str
+
+    # Frontend URL used to build Stripe success/cancel URLs
+    frontend_url: str = "http://localhost:5173"
+
+    # Comma-separated list of allowed CORS origins (defaults to local dev)
+    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     class Config:
         env_file = ".env"

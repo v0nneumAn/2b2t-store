@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCartStore } from '../stores/cartStore'
+import { getSessionId, sessionHeaders } from '../lib/session'
 
 type Step = 'account' | 'payment' | 'processing'
 
@@ -36,7 +37,7 @@ function Checkout() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          session_id: crypto.randomUUID(),
+          session_id: getSessionId(),
           items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
         }),
       })
@@ -58,7 +59,7 @@ function Checkout() {
 
       const orderRes = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...sessionHeaders() },
         body: JSON.stringify(payload),
       })
 
@@ -72,10 +73,6 @@ function Checkout() {
       const checkoutRes = await fetch(`/api/payments/checkout/${order.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          success_url: `${window.location.origin}/order/${order.id}?success=true`,
-          cancel_url: `${window.location.origin}/order/${order.id}?canceled=true`,
-        }),
       })
 
       if (!checkoutRes.ok) {

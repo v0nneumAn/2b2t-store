@@ -14,3 +14,6 @@ passlib[bcrypt]==1.7.4
 pyjwt==2.10.1
 python-dotenv==1.0.1
 stripe>=9.0,<10
+slowapi==0.1.9
+limits==3.14.1
+email-validator==2.2.0

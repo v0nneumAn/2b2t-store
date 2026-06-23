@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+import secrets
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy.orm import Session
-from ulid import ULID
 
+from .. import auth
 from .. import models
+from ..limiter import limiter
 from ..models import get_db
 
 router = APIRouter()
@@ -11,21 +13,22 @@ router = APIRouter()
 
 class ProductCreate(BaseModel):
     id: str | None = None
-    name: str
+    name: str = Field(..., min_length=1, max_length=255)
     description: str = ""
-    category: str
-    price_usd: float
-    image_url: str | None = None
+    category: str = Field(..., pattern="^(packs|items|ranks|kits)$")
+    server: str = Field("2b2t", pattern="^(2b2t|donutsmp|other)$")
+    price_usd: float = Field(..., ge=0)
+    image_url: HttpUrl | None = None
     delivery_types: list[str] = ["random", "specified", "meetup"]
     contents: list[dict] = []
     stock_keeping: str = "depot"
-    min_order_qty: int = 1
+    min_order_qty: int = Field(1, ge=1)
     max_order_qty: int | None = None
 
 
 class DepotCreate(BaseModel):
     id: str | None = None
-    name: str
+    name: str = Field(..., min_length=1, max_length=64)
     x: int
     y: int
     z: int
@@ -34,16 +37,18 @@ class DepotCreate(BaseModel):
     inventory: dict = {}
 
 
-@router.get("/products")
-def list_products_admin(db: Session = Depends(get_db)):
+@router.get("/products", dependencies=[Depends(auth.require_admin_key)])
+@limiter.limit("60/minute")
+def list_products_admin(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Product).all()
 
 
-@router.post("/products")
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
+@router.post("/products", dependencies=[Depends(auth.require_admin_key)])
+@limiter.limit("10/minute")
+def create_product(request: Request, payload: ProductCreate, db: Session = Depends(get_db)):
     product = models.Product(
-        id=payload.id or str(ULID()),
-        **payload.model_dump(exclude={"id"})
+        id=payload.id or secrets.token_urlsafe(16),
+        **payload.model_dump(exclude={"id"}, mode="json")
     )
     db.add(product)
     db.commit()
@@ -51,20 +56,23 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     return product
 
 
-@router.get("/orders")
-def list_orders(db: Session = Depends(get_db)):
+@router.get("/orders", dependencies=[Depends(auth.require_admin_key)])
+@limiter.limit("30/minute")
+def list_orders(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Order).all()
 
 
-@router.get("/depots")
-def list_depots(db: Session = Depends(get_db)):
+@router.get("/depots", dependencies=[Depends(auth.require_admin_key)])
+@limiter.limit("60/minute")
+def list_depots(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Depot).all()
 
 
-@router.post("/depots")
-def create_depot(payload: DepotCreate, db: Session = Depends(get_db)):
+@router.post("/depots", dependencies=[Depends(auth.require_admin_key)])
+@limiter.limit("10/minute")
+def create_depot(request: Request, payload: DepotCreate, db: Session = Depends(get_db)):
     depot = models.Depot(
-        id=payload.id or str(ULID()),
+        id=payload.id or secrets.token_urlsafe(16),
         **payload.model_dump(exclude={"id"})
     )
     db.add(depot)
