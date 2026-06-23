@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+import stripe
 
 from .. import models
 from ..limiter import limiter
@@ -27,10 +28,15 @@ def create_checkout_session(
         raise HTTPException(status_code=400, detail="Order is not awaiting payment")
 
     stripe_client = get_stripe_client()
-    session = stripe_client.create_checkout_session(
-        order_id=order.id,
-        amount_usd=order.price_usd,
-    )
+    try:
+        session = stripe_client.create_checkout_session(
+            order_id=order.id,
+            amount_usd=order.price_usd,
+        )
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=502, detail=f"Stripe error: {e.user_message or e.message}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Payment provider error: {str(e)}")
 
     order.payment_checkout_session_id = session.id
     order.payment_intent_id = session.payment_intent
