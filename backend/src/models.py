@@ -30,6 +30,7 @@ class Product(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, default="")
     category = Column(String(50), nullable=False)
+    server = Column(String(20), nullable=False, default="2b2t")
     price_usd = Column(Numeric(12, 4), nullable=False)
     image_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
