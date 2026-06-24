@@ -3,6 +3,13 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { sessionHeaders } from '../lib/session'
 import { apiError } from '../lib/api'
 
+interface Coords {
+  x: number
+  y: number
+  z: number
+  dimension?: string
+}
+
 interface Order {
   id: string
   status: string
@@ -12,15 +19,41 @@ interface Order {
   payment_checkout_session_id: string | null
   paid_at: string | null
   delivery_type: string
-  delivery_coords?: { x: number; y: number; z: number; dimension: string } | null
+  delivery_coords?: Coords | null
+  handoff_coords?: Coords | null
+  assigned_bot?: string | null
+  customer_arrived_at?: string | null
+  delivered_at?: string | null
 }
 
 const STATUS_STYLES: Record<string, string> = {
   awaiting_payment: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
   pending: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
   paid: 'text-green-400 bg-green-400/10 border-green-400/20',
+  preparing: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  in_transit: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  ready_for_pickup: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+  customer_arrived: 'text-purple-400 bg-purple-400/10 border-purple-400/20',
+  dropping: 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+  delivered: 'text-green-400 bg-green-400/10 border-green-400/20',
   completed: 'text-green-400 bg-green-400/10 border-green-400/20',
   failed: 'text-red-400 bg-red-400/10 border-red-400/20',
+}
+
+// Ordered timeline steps for the delivery flow.
+const TIMELINE_STEPS = [
+  { key: 'paid', label: 'Payment received' },
+  { key: 'preparing', label: 'Bot preparing EnderChest' },
+  { key: 'ready_for_pickup', label: 'Ready for pickup' },
+  { key: 'customer_arrived', label: 'You arrived' },
+  { key: 'dropping', label: 'Bot dropping items' },
+  { key: 'delivered', label: 'Items dropped' },
+  { key: 'completed', label: 'Completed' },
+]
+
+function formatCoords(coords?: Coords | null) {
+  if (!coords) return null
+  return `${coords.x}, ${coords.y}, ${coords.z}${coords.dimension ? ` (${coords.dimension})` : ''}`
 }
 
 function Order() {
@@ -29,21 +62,28 @@ function Order() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [arrivalLoading, setArrivalLoading] = useState(false)
+
+  const fetchOrder = async () => {
+    if (!id) return
+    try {
+      const res = await fetch(`/api/orders/${id}`, { headers: sessionHeaders() })
+      if (!res.ok) throw await apiError(res)
+      const data = await res.json()
+      setOrder(data)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || 'Failed to load order')
+    }
+  }
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const res = await fetch(`/api/orders/${id}`, { headers: sessionHeaders() })
-        if (!res.ok) throw await apiError(res)
-        const data = await res.json()
-        setOrder(data)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+    const load = async () => {
+      setLoading(true)
+      await fetchOrder()
+      setLoading(false)
     }
-    fetchOrder()
+    load()
     const interval = setInterval(fetchOrder, 10000)
     return () => clearInterval(interval)
   }, [id])
@@ -75,7 +115,26 @@ function Order() {
     }
   }
 
-  if (loading) {
+  const confirmArrival = async () => {
+    if (!order) return
+    setArrivalLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/orders/${order.id}/arrived`, {
+        method: 'POST',
+        headers: sessionHeaders(),
+      })
+      if (!res.ok) throw await apiError(res)
+      const data = await res.json()
+      setOrder(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setArrivalLoading(false)
+    }
+  }
+
+  if (loading && !order) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center text-zinc-400">
         <div className="w-10 h-10 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-4" />
@@ -95,6 +154,10 @@ function Order() {
 
   const isPaid = order.status !== 'awaiting_payment' && order.status !== 'pending'
   const statusStyle = STATUS_STYLES[order.status] || 'text-zinc-300 bg-zinc-800 border-zinc-700'
+
+  // Determine timeline index. Anything before 'paid' is treated as step 0.
+  const statusIndex = TIMELINE_STEPS.findIndex((s) => s.key === order.status)
+  const activeStep = statusIndex >= 0 ? statusIndex : 0
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -134,11 +197,15 @@ function Order() {
 
         {order.delivery_coords && (
           <div className="flex items-center justify-between">
-            <span className="text-zinc-400">Coordinates</span>
-            <span className="font-medium">
-              {order.delivery_coords.x}, {order.delivery_coords.y}, {order.delivery_coords.z}{' '}
-              <span className="text-zinc-500 capitalize">({order.delivery_coords.dimension})</span>
-            </span>
+            <span className="text-zinc-400">Your coordinates</span>
+            <span className="font-medium">{formatCoords(order.delivery_coords)}</span>
+          </div>
+        )}
+
+        {order.assigned_bot && (
+          <div className="flex items-center justify-between">
+            <span className="text-zinc-400">Delivery bot</span>
+            <span className="font-medium">{order.assigned_bot}</span>
           </div>
         )}
 
@@ -179,6 +246,92 @@ function Order() {
           </div>
         )}
       </div>
+
+      {/* Delivery timeline */}
+      {isPaid && (
+        <div className="mt-8 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold mb-4">Delivery progress</h2>
+          <div className="relative">
+            {TIMELINE_STEPS.map((step, index) => {
+              const isCompleted = index < activeStep
+              const isCurrent = index === activeStep
+              return (
+                <div key={step.key} className="flex gap-4 pb-6 last:pb-0">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 font-bold text-sm ${
+                        isCompleted
+                          ? 'bg-green-500/20 border-green-500 text-green-400'
+                          : isCurrent
+                          ? 'bg-orange-500/20 border-orange-500 text-orange-400'
+                          : 'bg-zinc-800 border-zinc-700 text-zinc-500'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                    {index < TIMELINE_STEPS.length - 1 && (
+                      <div
+                        className={`w-0.5 flex-1 mt-2 ${
+                          isCompleted ? 'bg-green-500/40' : 'bg-zinc-800'
+                        }`}
+                      />
+                    )}
+                  </div>
+                  <div className="pb-2">
+                    <div
+                      className={`font-medium ${
+                        isCurrent ? 'text-white' : isCompleted ? 'text-zinc-300' : 'text-zinc-500'
+                      }`}
+                    >
+                      {step.label}
+                    </div>
+                    {step.key === 'ready_for_pickup' && order.handoff_coords && (
+                      <div className="text-sm text-emerald-400 mt-1">
+                        Pickup location: {formatCoords(order.handoff_coords)}
+                      </div>
+                    )}
+                    {step.key === 'customer_arrived' && order.customer_arrived_at && (
+                      <div className="text-sm text-zinc-500 mt-1">
+                        Confirmed at {new Date(order.customer_arrived_at).toLocaleString()}
+                      </div>
+                    )}
+                    {step.key === 'delivered' && order.delivered_at && (
+                      <div className="text-sm text-zinc-500 mt-1">
+                        Dropped at {new Date(order.delivered_at).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {order.status === 'ready_for_pickup' && (
+            <div className="mt-6 pt-6 border-t border-zinc-800">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4 mb-4">
+                <p className="text-emerald-200 text-sm">
+                  Travel to{' '}
+                  <strong className="font-mono">{formatCoords(order.handoff_coords)}</strong> and
+                  click the button below once you are standing at the EnderChest.
+                </p>
+              </div>
+              <button
+                onClick={confirmArrival}
+                disabled={arrivalLoading}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-semibold rounded-lg transition-colors"
+              >
+                {arrivalLoading ? 'Confirming…' : 'I am at the location'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

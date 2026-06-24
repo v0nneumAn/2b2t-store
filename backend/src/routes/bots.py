@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from .. import auth
 from .. import models
+from ..config import get_settings
 from ..models import get_db
+from ..services.zenith_client import get_bot_zenith_client, ZenithClientError
 
 router = APIRouter(prefix="/api/bots", tags=["bots"])
 
@@ -46,6 +48,15 @@ class BotCommandResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ZenithCommandRequest(BaseModel):
+    command: str = Field(..., min_length=1)
+
+
+class ZenithCommandResponse(BaseModel):
+    command: str
+    response: dict
 
 
 @router.post("", response_model=BotResponse)
@@ -129,3 +140,38 @@ def next_command(
         cmd.acknowledged_at = datetime.utcnow()
         db.commit()
     return cmd
+
+
+@router.post("/{role}/zenith/command", response_model=ZenithCommandResponse)
+def send_zenith_command(
+    role: str,
+    payload: ZenithCommandRequest,
+    db: Session = Depends(get_db),
+    _=Depends(auth.require_admin_key),
+):
+    """
+    Send a command directly to a ZenithProxy Web API instance.
+
+    Per-bot webApi config overrides the global ZENITH_WEB_API_URL/TOKEN.
+    """
+    bot = db.query(models.Bot).filter(models.Bot.role == role).first()
+    if not bot:
+        raise HTTPException(status_code=404, detail="Bot not found")
+
+    client = get_bot_zenith_client(bot.config)
+    if not client:
+        settings = get_settings()
+        if not settings.zenith_web_api_url or not settings.zenith_web_api_token:
+            raise HTTPException(
+                status_code=400,
+                detail="No ZenithProxy Web API configured for this bot or globally",
+            )
+        from ..services.zenith_client import ZenithClient
+        client = ZenithClient(settings.zenith_web_api_url, settings.zenith_web_api_token)
+
+    try:
+        result = client.send_command(payload.command)
+    except ZenithClientError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {"command": payload.command, "response": result}

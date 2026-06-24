@@ -17,6 +17,9 @@ class OrderStatus(str, Enum):
     PAID = "paid"
     PREPARING = "preparing"
     IN_TRANSIT = "in_transit"
+    READY_FOR_PICKUP = "ready_for_pickup"
+    CUSTOMER_ARRIVED = "customer_arrived"
+    DROPPING = "dropping"
     DELIVERED = "delivered"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
@@ -90,6 +93,8 @@ class Order(Base):
 
     assigned_depot_id = Column(String(32), nullable=True)
     assigned_bot = Column(String(64), nullable=True)
+    handoff_coords = Column(JSON, nullable=True)
+    customer_arrived_at = Column(DateTime(timezone=True), nullable=True)
     delivery_proof = Column(JSON, nullable=True)
     delivered_at = Column(DateTime(timezone=True), nullable=True)
 

@@ -23,3 +23,24 @@ def create_delivery_job(db: Session, order: models.Order, depot: models.Depot):
     db.add(job)
     db.commit()
     return job
+
+
+def create_drop_job(db: Session, order: models.Order):
+    """Create a drop job after the customer confirms arrival at the handoff location."""
+    job = models.DeliveryJob(
+        id=str(ULID()),
+        order_id=order.id,
+        job_type="drop",
+        depot_id=order.assigned_depot_id,
+        status="queued",
+        payload={
+            "handoff_coords": order.handoff_coords,
+            "items": [
+                {"product_id": item.product_id, "product_name": item.product_name, "quantity": item.quantity}
+                for item in order.items
+            ],
+        },
+    )
+    db.add(job)
+    db.commit()
+    return job

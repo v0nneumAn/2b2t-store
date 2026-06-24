@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime, timezone
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -8,6 +9,7 @@ from .. import models
 from ..config import get_settings
 from ..limiter import limiter
 from ..models import get_db, OrderStatus
+from ..services.delivery_queue import create_drop_job
 from ..services.orders import calculate_order_total
 
 router = APIRouter()
@@ -120,6 +122,22 @@ def _verify_order_ownership(order: models.Order, session_id: str | None, db: Ses
             raise HTTPException(status_code=404, detail="Order not found")
 
 
+def _order_response(order: models.Order) -> dict:
+    return {
+        "id": order.id,
+        "status": order.status,
+        "delivery_type": order.delivery_type,
+        "delivery_coords": order.delivery_coords,
+        "handoff_coords": order.handoff_coords,
+        "assigned_bot": order.assigned_bot,
+        "price_usd": str(order.price_usd),
+        "paid_at": order.paid_at.isoformat() if order.paid_at else None,
+        "customer_arrived_at": order.customer_arrived_at.isoformat() if order.customer_arrived_at else None,
+        "delivered_at": order.delivered_at.isoformat() if order.delivered_at else None,
+        "created_at": order.created_at.isoformat() if order.created_at else None,
+    }
+
+
 @router.get("/{order_id}")
 @limiter.limit("30/minute")
 def get_order(
@@ -132,15 +150,35 @@ def get_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     _verify_order_ownership(order, session_id, db)
-    return {
-        "id": order.id,
-        "status": order.status,
-        "delivery_type": order.delivery_type,
-        "delivery_coords": order.delivery_coords,
-        "price_usd": str(order.price_usd),
-        "paid_at": order.paid_at.isoformat() if order.paid_at else None,
-        "created_at": order.created_at.isoformat() if order.created_at else None,
-    }
+    return _order_response(order)
+
+
+@router.post("/{order_id}/arrived")
+@limiter.limit("10/minute")
+def confirm_customer_arrival(
+    request: Request,
+    order_id: str,
+    db: Session = Depends(get_db),
+    session_id: str | None = Depends(_get_session_id),
+):
+    """Customer confirms they are at the handoff location."""
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    _verify_order_ownership(order, session_id, db)
+
+    if order.status != OrderStatus.READY_FOR_PICKUP.value:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Order is not ready for pickup (status: {order.status})",
+        )
+
+    order.status = OrderStatus.CUSTOMER_ARRIVED.value
+    order.customer_arrived_at = datetime.now(timezone.utc)
+    create_drop_job(db, order)
+    db.commit()
+    db.refresh(order)
+    return _order_response(order)
 
 
 @router.get("/{order_id}/payment")

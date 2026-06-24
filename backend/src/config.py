@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed CORS origins (defaults to local dev)
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
 
+    # Optional default ZenithProxy Web API (for single-bot demos).
+    # Per-bot config in the bots table overrides these.
+    zenith_web_api_url: str = ""
+    zenith_web_api_token: str = ""
+
     @property
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
