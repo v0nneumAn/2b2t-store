@@ -1,0 +1,19 @@
+# Tailscale VM deployment override for 2b2t Store.
+#
+# Usage on the VM:
+#   cd /path/to/2b2t-store/docker
+#   docker compose -f docker-compose.yml -f docker-compose.vm.yml up -d
+#
+# This exposes the web frontend on port 80 so you can browse:
+#   http://<vm-tailscale-hostname>
+# And the backend API on port 8000:
+#   http://<vm-tailscale-hostname>:8000
+
+services:
+  web:
+    ports:
+      - "80:80"
+
+  backend:
+    ports:
+      - "8000:8000"
