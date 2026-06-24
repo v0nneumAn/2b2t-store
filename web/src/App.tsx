@@ -7,6 +7,12 @@ import Checkout from './pages/Checkout'
 import Order from './pages/Order'
 import CartDrawer from './components/CartDrawer'
 import { useCartStore } from './stores/cartStore'
+import AdminLogin from './pages/admin/Login'
+import AdminDashboard from './pages/admin/Dashboard'
+import AdminProducts from './pages/admin/Products'
+import AdminOrders from './pages/admin/Orders'
+import AdminDepots from './pages/admin/Depots'
+import AdminBots from './pages/admin/Bots'
 
 function App() {
   const [cartOpen, setCartOpen] = useState(false)
@@ -14,6 +20,31 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white font-sans">
+      <Routes>
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/*" element={<AdminLayout />} />
+        <Route
+          path="/*"
+          element={
+            <StoreLayout cartOpen={cartOpen} setCartOpen={setCartOpen} itemCount={itemCount} />
+          }
+        />
+      </Routes>
+    </div>
+  )
+}
+
+function StoreLayout({
+  cartOpen,
+  setCartOpen,
+  itemCount,
+}: {
+  cartOpen: boolean
+  setCartOpen: (open: boolean) => void
+  itemCount: number
+}) {
+  return (
+    <>
       <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#0a0a0b]/80 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 h-[68px] flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
@@ -41,6 +72,12 @@ function App() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <Link
+              to="/admin"
+              className="hidden sm:flex text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+            >
+              Admin
+            </Link>
             <a
               href="https://discord.gg"
               target="_blank"
@@ -83,7 +120,19 @@ function App() {
       </main>
 
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-    </div>
+    </>
+  )
+}
+
+function AdminLayout() {
+  return (
+    <Routes>
+      <Route path="/" element={<AdminDashboard />} />
+      <Route path="/products" element={<AdminProducts />} />
+      <Route path="/orders" element={<AdminOrders />} />
+      <Route path="/depots" element={<AdminDepots />} />
+      <Route path="/bots" element={<AdminBots />} />
+    </Routes>
   )
 }
 
