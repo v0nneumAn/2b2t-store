@@ -1,7 +1,7 @@
 package com.deliveryzenith.http;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -20,7 +20,7 @@ import static com.deliveryzenith.DeliveryZenithPlugin.LOG;
  */
 public class PearlBotClient {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Gson GSON = new Gson();
     private static final HttpClient HTTP = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build();
@@ -36,16 +36,14 @@ public class PearlBotClient {
      * @throws Exception if the request fails or PearlBot returns a non-2xx status
      */
     public static void closeTrapDoor(final String orderId, final String baseUrl, final String apiSecret) throws Exception {
-        ObjectNode body = MAPPER.createObjectNode();
-        body.put("orderId", orderId);
-
-        byte[] bodyBytes = MAPPER.writeValueAsBytes(body);
+        JsonObject body = new JsonObject();
+        body.addProperty("orderId", orderId);
 
         HttpRequest.Builder builder = HttpRequest.newBuilder()
             .uri(URI.create((baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl) + "/trapdoor"))
             .timeout(Duration.ofSeconds(30))
             .header("Content-Type", "application/json; charset=utf-8")
-            .POST(HttpRequest.BodyPublishers.ofByteArray(bodyBytes));
+            .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(body)));
 
         if (apiSecret != null && !apiSecret.isBlank()) {
             builder.header("X-Api-Secret", apiSecret);
