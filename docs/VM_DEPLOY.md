@@ -1,13 +1,15 @@
 # VM Deployment Guide
 
-Run the entire 2b2t Store on a Tailscale-connected VM and access it remotely from your personal machine.
+Run the entire 2b2t Store on a Tailscale-connected VM and access it from your tailnet and local LAN.
+
+This guide uses the example domain `shulker.shop` and Tailscale hostname `shulker-shop`. Replace these with your own domain/hostname as needed.
 
 ## Overview
 
-| Host | Role | Access from personal machine |
-|------|------|------------------------------|
-| VM | Runs backend, web frontend, Discord bot, Postgres, Redis | Tailscale hostname |
-| Personal machine | Browser + remote management | Tailscale client |
+| Host | Role | Access |
+|------|------|--------|
+| VM | Runs backend, web frontend, Discord bot, Postgres, Redis | Tailscale + LAN |
+| Personal machine / partners | Browser + remote management | Tailscale client or LAN DNS |
 
 ## 1. Prepare the VM
 
@@ -32,7 +34,11 @@ curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
 ```
 
-Note the VM's Tailscale hostname (e.g., `store-vm`).
+Set the VM's Tailscale hostname (e.g., `shulker-shop`):
+
+```bash
+sudo tailscale up --hostname=shulker-shop --advertise-tags=tag:store-server --reset
+```
 
 ## 2. Configure environment
 
@@ -47,8 +53,8 @@ Required values:
 - `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
 - `BOT_API_KEY`, `ADMIN_API_KEY`
 - `DISCORD_TOKEN`, `GUILD_ID`
-- `FRONTEND_URL` — set to `http://<vm-tailscale-hostname>`
-- `CORS_ORIGINS` — include the VM's Tailscale hostname
+- `FRONTEND_URL` — set to `http://shulker.shop`
+- `CORS_ORIGINS` — include `http://shulker.shop` and any local dev origins
 
 Generate strong keys:
 
@@ -84,22 +90,32 @@ docker exec store-backend python scripts/seed_advert_test.py
 
 ## 5. Access from your personal machine
 
-Open a browser and go to:
+### Tailscale (remote partners)
 
-```
-http://<vm-tailscale-hostname>
+```text
+https://shulker-shop.<tailnet>.ts.net
 ```
 
 Admin interface:
 
-```
-http://<vm-tailscale-hostname>/admin
+```text
+https://shulker-shop.<tailnet>.ts.net/admin
 ```
 
-Backend API:
+### LAN / local DNS
 
-```bash
-curl http://<vm-tailscale-hostname>:8000/health
+If you run a local DNS resolver (e.g., Pi-hole), add a record for `shulker.shop` pointing to the VM's LAN IP:
+
+```text
+shulker.shop → 192.168.1.31
+```
+
+Then access:
+
+```text
+http://shulker.shop
+http://shulker.shop/admin
+http://shulker.shop:8000/health
 ```
 
 ## 6. View logs
@@ -146,7 +162,7 @@ If you want the shop reachable from the public internet, use Tailscale Funnel on
 sudo tailscale funnel --bg 80
 ```
 
-This exposes the web frontend on `https://<vm-tailscale-hostname>.<tailnet>.ts.net`.
+This exposes the web frontend on `https://shulker-shop.<tailnet>.ts.net`.
 
 To remove public access:
 

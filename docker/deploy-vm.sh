@@ -25,8 +25,10 @@ sleep 5
 echo "Seeding demo data..."
 docker exec store-backend python scripts/seed_demo.py || true
 
+FRONTEND_URL=$(grep '^FRONTEND_URL=' "$ENV_FILE" | cut -d= -f2- | tr -d '"')
+
 echo ""
 echo "Deployment complete."
-echo "Web:    http://$(hostname -s)"
-echo "API:    http://$(hostname -s):8000"
-echo "Admin:  http://$(hostname -s)/admin"
+echo "Web:    ${FRONTEND_URL:-http://<your-domain>}"
+echo "API:    ${FRONTEND_URL:-http://<your-domain>}:8000"
+echo "Admin:  ${FRONTEND_URL:-http://<your-domain>}/admin"
