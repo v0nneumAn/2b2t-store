@@ -16,12 +16,12 @@ fi
 echo "Pulling latest code..."
 git -C .. pull origin main || true
 
-echo "Building and starting services..."
-docker compose $COMPOSE_FILES --env-file "$ENV_FILE" up -d --build
-
 echo "Generating delivery-bot config..."
 mkdir -p ../delivery-bot/config
 python3 ../delivery-bot/scripts/generate_config.py --env-file "$ENV_FILE" --output ../delivery-bot/config/delivery-zenith.json || true
+
+echo "Building and starting services..."
+docker compose $COMPOSE_FILES --env-file "$ENV_FILE" up -d --build
 
 echo "Waiting for backend to become healthy..."
 sleep 5
