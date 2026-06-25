@@ -5,6 +5,7 @@ import Shop from './pages/Shop'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
 import Order from './pages/Order'
+import MyOrders from './pages/MyOrders'
 import CartDrawer from './components/CartDrawer'
 import { useCartStore } from './stores/cartStore'
 import AdminLogin from './pages/admin/Login'
@@ -73,6 +74,12 @@ function StoreLayout({
 
           <div className="flex items-center gap-3">
             <Link
+              to="/my-orders"
+              className="hidden sm:flex text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+            >
+              My Orders
+            </Link>
+            <Link
               to="/admin"
               className="hidden sm:flex text-sm font-medium text-zinc-400 hover:text-white transition-colors"
             >
@@ -116,6 +123,7 @@ function StoreLayout({
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order/:id" element={<Order />} />
+          <Route path="/my-orders" element={<MyOrders />} />
         </Routes>
       </main>
 

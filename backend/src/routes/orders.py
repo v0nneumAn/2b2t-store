@@ -138,6 +138,23 @@ def _order_response(order: models.Order) -> dict:
     }
 
 
+@router.get("/by-email/{email}")
+@limiter.limit("10/minute")
+def list_orders_by_email(
+    request: Request,
+    email: str,
+    db: Session = Depends(get_db),
+):
+    """Allow customers to look up all orders placed with a given email."""
+    orders = (
+        db.query(models.Order)
+        .filter(models.Order.customer_email == email)
+        .order_by(models.Order.created_at.desc())
+        .all()
+    )
+    return [_order_response(o) for o in orders]
+
+
 @router.get("/{order_id}")
 @limiter.limit("30/minute")
 def get_order(
