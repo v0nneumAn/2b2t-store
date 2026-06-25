@@ -31,6 +31,18 @@ public class DeliveryZenithPlugin implements ZenithProxyPlugin {
         LOG = pluginAPI.getLogger();
         LOG.info("DeliveryZenith loading...");
         PLUGIN_CONFIG = pluginAPI.registerConfig(BuildConstants.PLUGIN_ID, DeliveryZenithConfig.class);
+        try {
+            java.nio.file.Path configPath = java.nio.file.Path.of("/zenith/config/delivery-zenith.json");
+            if (java.nio.file.Files.exists(configPath)) {
+                String content = java.nio.file.Files.readString(configPath);
+                LOG.info("Read delivery-zenith.json ({} bytes), contains botKey: {}",
+                    content.length(), content.contains("\"botKey\""));
+            } else {
+                LOG.warn("delivery-zenith.json not found at /zenith/config/delivery-zenith.json");
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to read config file", e);
+        }
         DELIVERY_BOT = new DeliveryBot();
         pluginAPI.registerCommand(new DeliveryBotCommand());
 
