@@ -3,8 +3,8 @@
 Simulated delivery bot for end-to-end demo testing.
 
 This bot does NOT connect to Minecraft. It exercises the backend control plane
-by polling for delivery jobs, claiming them, reporting handoff coordinates,
-waiting for the customer to arrive, and finally reporting the drop.
+by polling for delivery jobs and drop jobs, then reporting the appropriate
+status updates so orders progress through the full lifecycle.
 
 Run locally or on the VM:
     BACKEND_URL=http://192.168.1.31:8000 BOT_API_KEY=xxx BOT_ID=delivery-alpha python3 scripts/sim_delivery_bot.py
@@ -84,6 +84,48 @@ def get_order(order_id: str):
     return api_get(f"/api/orders/{order_id}")
 
 
+def handle_delivery_job(job: dict):
+    """Initial delivery job: travel to depot and report handoff coordinates."""
+    job_id = job["id"]
+    order_id = job["order_id"]
+    print(f"[{BOT_ID}] Delivery job {job_id} for order {order_id}. Claiming...")
+    claim_job(job_id)
+    print(f"[{BOT_ID}] Job {job_id} claimed.")
+
+    # Simulate travel + preparation.
+    time.sleep(3)
+    update_job(job_id, "preparing")
+    print(f"[{BOT_ID}] Status: preparing")
+
+    time.sleep(3)
+    update_job(job_id, "in_transit")
+    print(f"[{BOT_ID}] Status: in_transit")
+
+    # Report handoff coordinates.
+    time.sleep(3)
+    coords = {"x": 150, "y": 70, "z": -280, "dimension": "overworld"}
+    handoff = report_handoff(order_id, coords)
+    print(f"[{BOT_ID}] Handoff reported: {handoff['handoff_coords']}")
+    print(f"[{BOT_ID}] Order status: {handoff['status']}")
+
+
+def handle_drop_job(job: dict):
+    """Drop job: customer has arrived, drop the items."""
+    job_id = job["id"]
+    order_id = job["order_id"]
+    print(f"[{BOT_ID}] Drop job {job_id} for order {order_id}. Claiming...")
+    claim_job(job_id)
+    print(f"[{BOT_ID}] Job {job_id} claimed.")
+
+    time.sleep(2)
+    update_job(job_id, "dropping")
+    print(f"[{BOT_ID}] Status: dropping")
+
+    time.sleep(2)
+    dropped = report_dropped(order_id)
+    print(f"[{BOT_ID}] Drop reported. Order status: {dropped['status']}")
+
+
 def run():
     print(f"[{BOT_ID}] Simulator started. Polling {BACKEND_URL} every {POLL_INTERVAL}s.")
     while True:
@@ -93,52 +135,23 @@ def run():
                 time.sleep(POLL_INTERVAL)
                 continue
 
-            job_id = job["id"]
-            order_id = job["order_id"]
-            print(f"[{BOT_ID}] Found job {job_id} for order {order_id}. Claiming...")
-            claim_job(job_id)
-            print(f"[{BOT_ID}] Job {job_id} claimed.")
-
-            # Simulate travel + preparation.
-            time.sleep(3)
-            update_job(job_id, "preparing")
-            print(f"[{BOT_ID}] Status: preparing")
-
-            time.sleep(3)
-            update_job(job_id, "in_transit")
-            print(f"[{BOT_ID}] Status: in_transit")
-
-            # Report handoff coordinates.
-            time.sleep(3)
-            coords = {"x": 150, "y": 70, "z": -280, "dimension": "overworld"}
-            handoff = report_handoff(order_id, coords)
-            print(f"[{BOT_ID}] Handoff reported: {handoff['handoff_coords']}")
-            print(f"[{BOT_ID}] Order status: {handoff['status']}")
-
-            # Wait for customer to arrive.
-            print(f"[{BOT_ID}] Waiting for customer arrival...")
-            while True:
-                time.sleep(POLL_INTERVAL)
-                order = get_order(order_id)
-                status = order.get("status")
-                print(f"[{BOT_ID}] Order status: {status}")
-                if status in ("customer_arrived", "dropping"):
-                    break
-                if status in ("delivered", "completed", "cancelled", "refunded"):
-                    print(f"[{BOT_ID}] Order ended with status {status}. Resuming poll.")
-                    break
-
-            if order.get("status") in ("delivered", "completed", "cancelled", "refunded"):
-                continue
-
-            # Drop items.
-            time.sleep(2)
-            update_job(job_id, "dropping")
-            print(f"[{BOT_ID}] Status: dropping")
-
-            time.sleep(2)
-            dropped = report_dropped(order_id)
-            print(f"[{BOT_ID}] Drop reported. Order status: {dropped['status']}")
+            job_type = job.get("job_type", "random")
+            if job_type == "drop":
+                handle_drop_job(job)
+            else:
+                handle_delivery_job(job)
+                # After reporting handoff, wait here until a drop job appears.
+                print(f"[{BOT_ID}] Waiting for customer arrival...")
+                while True:
+                    time.sleep(POLL_INTERVAL)
+                    order = get_order(job["order_id"])
+                    status = order.get("status")
+                    print(f"[{BOT_ID}] Order status: {status}")
+                    if status in ("customer_arrived", "dropping"):
+                        break
+                    if status in ("delivered", "completed", "cancelled", "refunded"):
+                        print(f"[{BOT_ID}] Order ended with status {status}. Resuming poll.")
+                        break
 
         except Exception as exc:
             print(f"[{BOT_ID}] Error: {exc}")
