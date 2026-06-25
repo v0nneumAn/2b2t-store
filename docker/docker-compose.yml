@@ -81,6 +81,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      paper:
+        condition: service_healthy
     restart: unless-stopped
     stdin_open: true
     tty: true
@@ -106,6 +108,24 @@ services:
     container_name: store-redis
     volumes:
       - redis-data:/data
+    restart: unless-stopped
+
+  paper:
+    image: eclipse-temurin:21-jre
+    container_name: store-paper
+    working_dir: /paper
+    volumes:
+      - ../paper-server/server:/paper
+    ports:
+      - "25565:25565"
+    command: ["./start.sh"]
+    environment:
+      EULA: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 2 bash -c 'cat < /dev/null > /dev/tcp/localhost/25565'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
     restart: unless-stopped
 
 volumes:
