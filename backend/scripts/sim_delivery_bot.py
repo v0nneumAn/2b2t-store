@@ -7,14 +7,15 @@ by polling for delivery jobs, claiming them, reporting handoff coordinates,
 waiting for the customer to arrive, and finally reporting the drop.
 
 Run locally or on the VM:
-    BACKEND_URL=http://192.168.1.31:8000 BOT_API_KEY=xxx BOT_ID=delivery-alpha python scripts/sim_delivery_bot.py
+    BACKEND_URL=http://192.168.1.31:8000 BOT_API_KEY=xxx BOT_ID=delivery-alpha python3 scripts/sim_delivery_bot.py
 """
 
+import json
 import os
 import sys
 import time
-
-import httpx
+import urllib.error
+import urllib.request
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -26,54 +27,61 @@ POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "5"))
 if not BOT_API_KEY:
     raise RuntimeError("BOT_API_KEY env var is required")
 
-HEADERS = {"X-Bot-Key": BOT_API_KEY}
+
+def _request(method: str, path: str, payload: dict | None = None):
+    url = f"{BACKEND_URL}{path}"
+    data = json.dumps(payload).encode() if payload else None
+    req = urllib.request.Request(
+        url,
+        data=data,
+        method=method,
+        headers={
+            "X-Bot-Key": BOT_API_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode()
+        raise RuntimeError(f"HTTP {exc.code}: {body}") from exc
 
 
 def api_get(path: str):
-    return httpx.get(f"{BACKEND_URL}{path}", headers=HEADERS, timeout=10)
+    return _request("GET", path)
 
 
-def api_post(path: str, json: dict | None = None):
-    return httpx.post(f"{BACKEND_URL}{path}", headers=HEADERS, json=json, timeout=10)
+def api_post(path: str, payload: dict | None = None):
+    return _request("POST", path, payload)
 
 
 def next_job():
-    resp = api_get("/api/bot/jobs/next")
-    resp.raise_for_status()
-    return resp.json().get("job")
+    return api_get("/api/bot/jobs/next").get("job")
 
 
 def claim_job(job_id: str):
-    resp = api_post(f"/api/bot/jobs/{job_id}/claim?bot_id={BOT_ID}")
-    resp.raise_for_status()
-    return resp.json()
+    return api_post(f"/api/bot/jobs/{job_id}/claim?bot_id={BOT_ID}")
 
 
 def update_job(job_id: str, status: str, payload: dict | None = None):
-    resp = api_post(f"/api/bot/jobs/{job_id}/update", {"status": status, "payload": payload or {}})
-    resp.raise_for_status()
-    return resp.json()
+    return api_post(f"/api/bot/jobs/{job_id}/update", {"status": status, "payload": payload or {}})
 
 
 def report_handoff(order_id: str, coords: dict):
-    resp = api_post(
+    return api_post(
         f"/api/orders/{order_id}/handoff",
         {"coords": coords, "bot_id": BOT_ID},
     )
-    resp.raise_for_status()
-    return resp.json()
 
 
 def report_dropped(order_id: str):
-    resp = api_post(f"/api/orders/{order_id}/dropped", {"proof": {"demo": True}})
-    resp.raise_for_status()
-    return resp.json()
+    return api_post(f"/api/orders/{order_id}/dropped", {"proof": {"demo": True}})
 
 
 def get_order(order_id: str):
-    resp = api_get(f"/api/orders/{order_id}")
-    resp.raise_for_status()
-    return resp.json()
+    return api_get(f"/api/orders/{order_id}")
 
 
 def run():
