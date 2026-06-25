@@ -22,7 +22,7 @@ function Dashboard() {
           adminGet<unknown[]>('/admin/orders'),
           adminGet<unknown[]>('/admin/products'),
           adminGet<unknown[]>('/admin/depots'),
-          adminGet<unknown[]>('/api/bots'),
+          adminGet<unknown[]>('/admin/bots'),
         ])
         setStats({
           orders: orders.length,

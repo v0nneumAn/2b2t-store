@@ -74,6 +74,12 @@ def list_depots(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Depot).all()
 
 
+@router.get("/bots", dependencies=[Depends(auth.require_admin_key)])
+@limiter.limit("60/minute")
+def list_bots_admin(request: Request, db: Session = Depends(get_db)):
+    return db.query(models.Bot).all()
+
+
 @router.post("/depots", dependencies=[Depends(auth.require_admin_key)])
 @limiter.limit("10/minute")
 def create_depot(request: Request, payload: DepotCreate, db: Session = Depends(get_db)):
