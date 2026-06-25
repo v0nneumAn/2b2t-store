@@ -71,13 +71,13 @@ def update_job(job_id: str, status: str, payload: dict | None = None):
 
 def report_handoff(order_id: str, coords: dict):
     return api_post(
-        f"/api/orders/{order_id}/handoff",
+        f"/api/bot/orders/{order_id}/handoff",
         {"coords": coords, "bot_id": BOT_ID},
     )
 
 
 def report_dropped(order_id: str):
-    return api_post(f"/api/orders/{order_id}/dropped", {"proof": {"demo": True}})
+    return api_post(f"/api/bot/orders/{order_id}/dropped", {"proof": {"demo": True}})
 
 
 def get_order(order_id: str):
