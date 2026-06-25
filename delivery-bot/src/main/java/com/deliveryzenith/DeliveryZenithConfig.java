@@ -20,10 +20,15 @@ public class DeliveryZenithConfig {
         public String apiSecret = "";
 
         // Backend integration
+        @com.google.gson.annotations.SerializedName("backendUrl")
         public String backendUrl = "http://backend:8000";
+        @com.google.gson.annotations.SerializedName("bot_key")
         public String botKey = "";
+        @com.google.gson.annotations.SerializedName("botId")
         public String botId = "delivery-alpha";
+        @com.google.gson.annotations.SerializedName("jobPollIntervalSeconds")
         public int jobPollIntervalSeconds = 10;
+        @com.google.gson.annotations.SerializedName("jobPollingEnabled")
         public boolean jobPollingEnabled = true;
 
         // Optional two-bot stasis pearl reset (requires separate PearlBot account)
