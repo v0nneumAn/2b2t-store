@@ -34,9 +34,14 @@ public class DeliveryZenithPlugin implements ZenithProxyPlugin {
         DELIVERY_BOT = new DeliveryBot();
         pluginAPI.registerCommand(new DeliveryBotCommand());
 
+        String botKey = PLUGIN_CONFIG.deliveryBot.botKey;
+        LOG.info("Backend URL: {}, Bot ID: {}, Bot key present: {}",
+            PLUGIN_CONFIG.deliveryBot.backendUrl,
+            PLUGIN_CONFIG.deliveryBot.botId,
+            botKey != null && !botKey.isBlank());
         BackendClient backend = new BackendClient(
             PLUGIN_CONFIG.deliveryBot.backendUrl,
-            PLUGIN_CONFIG.deliveryBot.botKey,
+            botKey,
             PLUGIN_CONFIG.deliveryBot.botId
         );
         DELIVERY_BOT.setBackendClient(backend);
