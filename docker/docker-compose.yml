@@ -63,7 +63,10 @@ services:
     build: ../delivery-bot
     container_name: store-delivery-bot
     environment:
-      - ZENITH_CONFIG_authentication_accountType=${DELIVERY_BOT_ACCOUNT_TYPE:-msa}
+      - BACKEND_URL=http://backend:8000
+      - BOT_API_KEY=${BOT_API_KEY}
+      - DELIVERY_BOT_BOT_ID=${DELIVERY_BOT_BOT_ID:-delivery-alpha}
+      - ZENITH_CONFIG_authentication_accountType=${DELIVERY_BOT_ACCOUNT_TYPE:-device_code}
       - ZENITH_CONFIG_authentication_username=${DELIVERY_BOT_USERNAME:-}
       - ZENITH_CONFIG_client_server_address=${MINECRAFT_SERVER:-connect.2b2t.org}
       - ZENITH_CONFIG_client_server_port=${MINECRAFT_PORT:-25565}

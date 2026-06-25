@@ -51,11 +51,20 @@ public class DeliveryZenithPlugin implements ZenithProxyPlugin {
             PLUGIN_CONFIG.deliveryBot.backendUrl,
             PLUGIN_CONFIG.deliveryBot.botId,
             botKey != null && !botKey.isBlank());
-        BackendClient backend = new BackendClient(
-            PLUGIN_CONFIG.deliveryBot.backendUrl,
-            botKey,
-            PLUGIN_CONFIG.deliveryBot.botId
-        );
+        String backendUrl = PLUGIN_CONFIG.deliveryBot.backendUrl;
+        if ((backendUrl == null || backendUrl.isBlank()) && System.getenv("BACKEND_URL") != null) {
+            backendUrl = System.getenv("BACKEND_URL");
+        }
+        if (botKey == null || botKey.isBlank()) {
+            botKey = System.getenv("BOT_API_KEY");
+        }
+        String botId = PLUGIN_CONFIG.deliveryBot.botId;
+        if (botId == null || botId.isBlank()) {
+            botId = System.getenv("DELIVERY_BOT_BOT_ID");
+            if (botId == null || botId.isBlank()) botId = "delivery-alpha";
+        }
+        LOG.info("Using backend URL: {}, Bot ID: {}, Bot key present: {}", backendUrl, botId, botKey != null && !botKey.isBlank());
+        BackendClient backend = new BackendClient(backendUrl, botKey, botId);
         DELIVERY_BOT.setBackendClient(backend);
 
         if (PLUGIN_CONFIG.deliveryBot.jobPollingEnabled) {
