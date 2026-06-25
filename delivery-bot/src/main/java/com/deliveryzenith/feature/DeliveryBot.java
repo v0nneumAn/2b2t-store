@@ -7,8 +7,7 @@ import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.SourceChest;
 import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.State;
 import com.deliveryzenith.http.BackendClient;
 import com.deliveryzenith.http.PearlBotClient;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonObject;
 import com.zenith.Proxy;
 import com.zenith.cache.data.inventory.Container;
 import com.zenith.command.api.CommandContext;
@@ -55,7 +54,6 @@ import static com.zenith.Globals.*;
 import static com.zenith.util.DisconnectMessages.SYSTEM_DISCONNECT;
 
 public final class DeliveryBot extends ModuleUtils {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile @Nullable CommandContext lastCommandContext = null;
     private volatile @Nullable BackendClient backendClient = null;
@@ -113,7 +111,7 @@ public final class DeliveryBot extends ModuleUtils {
         this.backendClient = backendClient;
     }
 
-    private void reportJobStatus(final String status, final ObjectNode payload) {
+    private void reportJobStatus(final String status, final JsonObject payload) {
         Order order = PLUGIN_CONFIG.deliveryBot.activeOrder;
         if (order == null || order.backendJobId == null || order.backendJobId.isBlank()) return;
         BackendClient client = backendClient;
@@ -342,14 +340,15 @@ public final class DeliveryBot extends ModuleUtils {
         BackendClient client = backendClient;
         if (client == null) return;
         try {
-            ObjectNode proof = MAPPER.createObjectNode();
+            JsonObject proof = new JsonObject();
             if (order.deliveryLocation != null) {
-                ObjectNode coords = proof.putObject("coords");
-                coords.put("x", order.deliveryLocation.x());
-                coords.put("y", order.deliveryLocation.y());
-                coords.put("z", order.deliveryLocation.z());
+                JsonObject coords = new JsonObject();
+                coords.addProperty("x", order.deliveryLocation.x());
+                coords.addProperty("y", order.deliveryLocation.y());
+                coords.addProperty("z", order.deliveryLocation.z());
+                proof.add("coords", coords);
             }
-            proof.put("bot_id", PLUGIN_CONFIG.deliveryBot.botId);
+            proof.addProperty("bot_id", PLUGIN_CONFIG.deliveryBot.botId);
             client.reportDropped(order.id, proof);
         } catch (Exception e) {
             warn("Failed to report dropped for order {}: {}", order.id, e.getMessage());

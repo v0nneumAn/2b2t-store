@@ -4,9 +4,8 @@ import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.Order;
 import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.OrderItem;
 import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.State;
 import com.deliveryzenith.feature.DeliveryBot;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
@@ -23,11 +22,10 @@ import static com.deliveryzenith.DeliveryZenithPlugin.PLUGIN_CONFIG;
 /**
  * Embedded HTTP server for the DeliveryBot plugin.
  *
- * <p>Exposes a REST-like API so a backend server or Discord bot can submit
- * orders and trigger workflow steps without going through in-game commands.
+ * <p>Exposes a REST-like API so an operator or Discord bot can inspect status
+ * and trigger workflow steps without going through in-game commands.</p>
  *
  * <pre>
- *   POST /order              – submit a new order
  *   GET  /order/status       – current order state as JSON
  *   POST /order/arrived      – customer has arrived → startArrival()
  *   POST /order/complete     – manually mark order complete
@@ -36,7 +34,7 @@ import static com.deliveryzenith.DeliveryZenithPlugin.PLUGIN_CONFIG;
  */
 public class DeliveryHttpServer {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Gson GSON = new Gson();
 
     private HttpServer server;
     private final String apiSecret;
@@ -51,8 +49,6 @@ public class DeliveryHttpServer {
         server.createContext("/order/arrived", this::handleArrived);
         server.createContext("/order/complete", this::handleComplete);
         server.createContext("/order/cancel",  this::handleCancel);
-        // /order must be registered last — it is a prefix of the above paths
-        server.createContext("/order",         this::handleOrder);
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         LOG.info("DeliveryBot HTTP server listening on port {}", port);
@@ -66,64 +62,6 @@ public class DeliveryHttpServer {
     }
 
     // -------------------------------------------------------------------------
-    // POST /order  — create / replace the active order
-    // -------------------------------------------------------------------------
-
-    private void handleOrder(final HttpExchange exchange) throws IOException {
-        if (!checkMethod(exchange, "POST")) return;
-        if (!checkAuth(exchange)) return;
-        try {
-            JsonNode body = MAPPER.readTree(exchange.getRequestBody());
-
-            String id      = body.path("id").asText(null);
-            String ign     = body.path("orderIGN").asText(null);
-            JsonNode items = body.path("items");
-
-            if (id == null || id.isBlank()) {
-                sendError(exchange, 400, "Missing field: id");
-                return;
-            }
-            if (ign == null || ign.isBlank()) {
-                sendError(exchange, 400, "Missing field: orderIGN");
-                return;
-            }
-            if (!items.isArray() || items.isEmpty()) {
-                sendError(exchange, 400, "Missing or empty field: items");
-                return;
-            }
-            if (DELIVERY_BOT.isRunning()) {
-                sendError(exchange, 409, "A delivery workflow is currently running — cancel it first");
-                return;
-            }
-
-            Order order = new Order(id, ign);
-            for (JsonNode itemNode : items) {
-                int count          = itemNode.path("count").asInt(0);
-                String sourceChestId = itemNode.path("sourceChestId").asText(null);
-                if (count <= 0) {
-                    sendError(exchange, 400, "Item count must be > 0");
-                    return;
-                }
-                if (sourceChestId == null || sourceChestId.isBlank()) {
-                    sendError(exchange, 400, "Missing field: items[].sourceChestId");
-                    return;
-                }
-                order.items.add(new OrderItem(count, sourceChestId));
-            }
-
-            PLUGIN_CONFIG.deliveryBot.activeOrder = order;
-
-            ObjectNode resp = MAPPER.createObjectNode();
-            resp.put("success", true);
-            resp.put("orderId", id);
-            sendJson(exchange, 200, resp);
-        } catch (Exception e) {
-            LOG.error("Error handling POST /order", e);
-            sendError(exchange, 500, e.getMessage());
-        }
-    }
-
-    // -------------------------------------------------------------------------
     // GET /order/status
     // -------------------------------------------------------------------------
 
@@ -131,23 +69,25 @@ public class DeliveryHttpServer {
         if (!checkMethod(exchange, "GET")) return;
         if (!checkAuth(exchange)) return;
         Order order = PLUGIN_CONFIG.deliveryBot.activeOrder;
-        ObjectNode resp = MAPPER.createObjectNode();
-        resp.put("running", DELIVERY_BOT.isRunning());
+        JsonObject resp = new JsonObject();
+        resp.addProperty("running", DELIVERY_BOT.isRunning());
         if (order == null) {
-            resp.putNull("order");
+            resp.add("order", null);
         } else {
-            ObjectNode o = resp.putObject("order");
-            o.put("id",      order.id);
-            o.put("orderIGN", order.orderIGN);
-            o.put("state",   order.state.name());
-            o.put("status",  order.status != null ? order.status : "");
-            o.put("updatedAtEpochMs", order.updatedAtEpochMs);
+            JsonObject o = new JsonObject();
+            o.addProperty("id", order.id);
+            o.addProperty("orderIGN", order.orderIGN);
+            o.addProperty("state", order.state.name());
+            o.addProperty("status", order.status != null ? order.status : "");
+            o.addProperty("updatedAtEpochMs", order.updatedAtEpochMs);
             if (order.deliveryLocation != null) {
-                ObjectNode loc = o.putObject("deliveryLocation");
-                loc.put("x", order.deliveryLocation.x());
-                loc.put("y", order.deliveryLocation.y());
-                loc.put("z", order.deliveryLocation.z());
+                JsonObject loc = new JsonObject();
+                loc.addProperty("x", order.deliveryLocation.x());
+                loc.addProperty("y", order.deliveryLocation.y());
+                loc.addProperty("z", order.deliveryLocation.z());
+                o.add("deliveryLocation", loc);
             }
+            resp.add("order", o);
         }
         sendJson(exchange, 200, resp);
     }
@@ -169,9 +109,9 @@ public class DeliveryHttpServer {
             return;
         }
         boolean started = DELIVERY_BOT.startArrival(null);
-        ObjectNode resp = MAPPER.createObjectNode();
-        resp.put("success", started);
-        resp.put("message", started ? "Arrival workflow started" : "Delivery bot is already running");
+        JsonObject resp = new JsonObject();
+        resp.addProperty("success", started);
+        resp.addProperty("message", started ? "Arrival workflow started" : "Delivery bot is already running");
         sendJson(exchange, started ? 200 : 409, resp);
     }
 
@@ -183,9 +123,9 @@ public class DeliveryHttpServer {
         if (!checkMethod(exchange, "POST")) return;
         if (!checkAuth(exchange)) return;
         var result = DELIVERY_BOT.completeActiveOrderManually();
-        ObjectNode resp = MAPPER.createObjectNode();
-        resp.put("success", result.success());
-        resp.put("message", result.message());
+        JsonObject resp = new JsonObject();
+        resp.addProperty("success", result.success());
+        resp.addProperty("message", result.message());
         sendJson(exchange, result.success() ? 200 : 409, resp);
     }
 
@@ -197,9 +137,9 @@ public class DeliveryHttpServer {
         if (!checkMethod(exchange, "POST")) return;
         if (!checkAuth(exchange)) return;
         boolean cancelled = DELIVERY_BOT.cancel();
-        ObjectNode resp = MAPPER.createObjectNode();
-        resp.put("success", true);
-        resp.put("cancelled", cancelled);
+        JsonObject resp = new JsonObject();
+        resp.addProperty("success", true);
+        resp.addProperty("cancelled", cancelled);
         sendJson(exchange, 200, resp);
     }
 
@@ -229,8 +169,8 @@ public class DeliveryHttpServer {
     // Response helpers
     // -------------------------------------------------------------------------
 
-    private static void sendJson(final HttpExchange exchange, final int status, final ObjectNode body) throws IOException {
-        byte[] bytes = MAPPER.writeValueAsBytes(body);
+    private static void sendJson(final HttpExchange exchange, final int status, final JsonObject body) throws IOException {
+        byte[] bytes = GSON.toJson(body).getBytes(StandardCharsets.UTF_8);
         exchange.getResponseHeaders().add("Content-Type", "application/json; charset=utf-8");
         exchange.sendResponseHeaders(status, bytes.length);
         try (OutputStream os = exchange.getResponseBody()) {
@@ -239,9 +179,9 @@ public class DeliveryHttpServer {
     }
 
     private static void sendError(final HttpExchange exchange, final int status, final String message) throws IOException {
-        ObjectNode err = MAPPER.createObjectNode();
-        err.put("success", false);
-        err.put("error", message);
+        JsonObject err = new JsonObject();
+        err.addProperty("success", false);
+        err.addProperty("error", message);
         sendJson(exchange, status, err);
     }
 }

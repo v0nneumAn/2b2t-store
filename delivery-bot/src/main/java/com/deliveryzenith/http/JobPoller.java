@@ -6,7 +6,9 @@ import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.OrderItem;
 import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.SourceChest;
 import com.deliveryzenith.DeliveryZenithConfig.DeliveryBotConfig.State;
 import com.deliveryzenith.feature.DeliveryBot;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.concurrent.Executors;
@@ -51,13 +53,15 @@ public final class JobPoller {
         if (PLUGIN_CONFIG.deliveryBot.activeOrder != null) return;
 
         try {
-            JsonNode job = backend.nextJob();
+            JsonObject job = backend.nextJob();
             if (job == null) return;
 
-            String jobId = job.path("id").asText(null);
-            String jobType = job.path("job_type").asText(null);
-            String orderId = job.path("order_id").asText(null);
-            JsonNode payload = job.path("payload");
+            String jobId = getString(job, "id");
+            String jobType = getString(job, "job_type");
+            String orderId = getString(job, "order_id");
+            JsonObject payload = job.has("payload") && job.get("payload").isJsonObject()
+                ? job.getAsJsonObject("payload")
+                : new JsonObject();
 
             if (jobId == null || orderId == null) {
                 LOG.warn("Received malformed job from backend, skipping");
@@ -89,29 +93,35 @@ public final class JobPoller {
         }
     }
 
-    private Order buildOrder(final String orderId, final String jobType, final JsonNode payload) {
-        String customerIgn = payload.path("customer_ign").asText("unknown");
+    private Order buildOrder(final String orderId, final String jobType, final JsonObject payload) {
+        String customerIgn = getString(payload, "customer_ign");
+        if (customerIgn == null) customerIgn = "unknown";
         Order order = new Order(orderId, customerIgn);
         order.state = State.NEW;
 
-        JsonNode items = payload.path("items");
-        if (items.isArray()) {
-            for (JsonNode item : items) {
-                int count = item.path("quantity").asInt(item.path("count").asInt(0));
-                String sourceId = item.path("source_chest_id").asText(null);
-                if (sourceId == null) {
-                    // Fallback to the depot/source chest supplied by the backend.
-                    JsonNode chest = payload.path("source_chest");
-                    if (!chest.isMissingNode()) {
-                        sourceId = chest.path("id").asText(orderId + "-chest");
-                    }
+        JsonArray items = payload.has("items") && payload.get("items").isJsonArray()
+            ? payload.getAsJsonArray("items")
+            : new JsonArray();
+        for (JsonElement element : items) {
+            if (!element.isJsonObject()) continue;
+            JsonObject item = element.getAsJsonObject();
+            int count = item.has("quantity") ? item.get("quantity").getAsInt()
+                : (item.has("count") ? item.get("count").getAsInt() : 0);
+            String sourceId = getString(item, "source_chest_id");
+            if (sourceId == null) {
+                // Fallback to the depot/source chest supplied by the backend.
+                JsonObject chest = payload.has("source_chest") && payload.get("source_chest").isJsonObject()
+                    ? payload.getAsJsonObject("source_chest")
+                    : null;
+                if (chest != null) {
+                    sourceId = getString(chest, "id");
                 }
-                if (count <= 0 || sourceId == null) {
-                    LOG.warn("Skipping malformed item in order {}: {}", orderId, item);
-                    continue;
-                }
-                order.items.add(new OrderItem(count, sourceId));
             }
+            if (count <= 0 || sourceId == null) {
+                LOG.warn("Skipping malformed item in order {}: {}", orderId, item);
+                continue;
+            }
+            order.items.add(new OrderItem(count, sourceId));
         }
 
         if (order.items.isEmpty()) {
@@ -120,31 +130,42 @@ public final class JobPoller {
         }
 
         // For drop jobs the handoff location is supplied in the payload.
-        JsonNode handoff = payload.path("handoff_coords");
-        if (!handoff.isMissingNode()) {
+        JsonObject handoff = payload.has("handoff_coords") && payload.get("handoff_coords").isJsonObject()
+            ? payload.getAsJsonObject("handoff_coords")
+            : null;
+        if (handoff != null) {
             order.deliveryLocation = new DeliveryZenithConfig.DeliveryBotConfig.Position(
-                handoff.path("x").asInt(),
-                handoff.path("y").asInt(),
-                handoff.path("z").asInt()
+                handoff.get("x").getAsInt(),
+                handoff.get("y").getAsInt(),
+                handoff.get("z").getAsInt()
             );
         }
 
         // For prepare jobs the source chest is supplied in the payload.
-        JsonNode sourceChest = payload.path("source_chest");
-        if (!sourceChest.isMissingNode()) {
-            String id = sourceChest.path("id").asText(orderId + "-chest");
-            int x = sourceChest.path("x").asInt();
-            int y = sourceChest.path("y").asInt();
-            int z = sourceChest.path("z").asInt();
+        JsonObject sourceChest = payload.has("source_chest") && payload.get("source_chest").isJsonObject()
+            ? payload.getAsJsonObject("source_chest")
+            : null;
+        if (sourceChest != null) {
+            String rawId = getString(sourceChest, "id");
+            final String chestId = rawId != null ? rawId : orderId + "-chest";
+            int x = sourceChest.has("x") ? sourceChest.get("x").getAsInt() : 0;
+            int y = sourceChest.has("y") ? sourceChest.get("y").getAsInt() : 0;
+            int z = sourceChest.has("z") ? sourceChest.get("z").getAsInt() : 0;
             // Inject the dynamic source chest into config if not already present.
             var config = PLUGIN_CONFIG.deliveryBot;
-            boolean exists = config.sourceChests.stream().anyMatch(s -> s.id().equalsIgnoreCase(id));
+            boolean exists = config.sourceChests.stream().anyMatch(s -> s.id().equalsIgnoreCase(chestId));
             if (!exists) {
                 if (config.sourceChests == null) config.sourceChests = new ArrayList<>();
-                config.sourceChests.add(new SourceChest(id, x, y, z));
+                config.sourceChests.add(new SourceChest(chestId, x, y, z));
             }
         }
 
         return order;
+    }
+
+    private String getString(final JsonObject obj, final String key) {
+        if (obj == null || !obj.has(key)) return null;
+        JsonElement el = obj.get(key);
+        return el.isJsonNull() ? null : el.getAsString();
     }
 }

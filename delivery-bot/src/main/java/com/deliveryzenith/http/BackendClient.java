@@ -1,8 +1,7 @@
 package com.deliveryzenith.http;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -19,7 +18,7 @@ import static com.deliveryzenith.DeliveryZenithPlugin.LOG;
  */
 public final class BackendClient {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final Gson GSON = new Gson();
     private static final HttpClient HTTP = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build();
@@ -37,9 +36,9 @@ public final class BackendClient {
     /**
      * Poll for the next queued delivery job.
      *
-     * @return the job node, or {@code null} if no job is available
+     * @return the job object, or {@code null} if no job is available
      */
-    public JsonNode nextJob() throws Exception {
+    public JsonObject nextJob() throws Exception {
         HttpRequest req = newBuilder("/api/bot/jobs/next")
             .GET()
             .build();
@@ -47,9 +46,11 @@ public final class BackendClient {
         if (resp.statusCode() != 200) {
             throw new RuntimeException("nextJob failed: HTTP " + resp.statusCode() + " " + resp.body());
         }
-        JsonNode root = MAPPER.readTree(resp.body());
-        JsonNode job = root.path("job");
-        return job.isNull() || job.isMissingNode() ? null : job;
+        JsonObject root = GSON.fromJson(resp.body(), JsonObject.class);
+        if (root == null || !root.has("job") || root.get("job").isJsonNull()) {
+            return null;
+        }
+        return root.getAsJsonObject("job");
     }
 
     /**
@@ -68,11 +69,11 @@ public final class BackendClient {
     /**
      * Report a job status update. Well-known statuses are synced to the parent order.
      */
-    public void updateJob(final String jobId, final String status, final ObjectNode payload) throws Exception {
-        ObjectNode body = MAPPER.createObjectNode();
-        body.put("status", status);
+    public void updateJob(final String jobId, final String status, final JsonObject payload) throws Exception {
+        JsonObject body = new JsonObject();
+        body.addProperty("status", status);
         if (payload != null) {
-            body.set("payload", payload);
+            body.add("payload", payload);
         }
 
         HttpRequest req = newBuilder("/api/bot/jobs/" + jobId + "/update")
@@ -88,14 +89,14 @@ public final class BackendClient {
      * Report the EnderChest handoff coordinates to the backend.
      */
     public void reportHandoff(final String orderId, final int x, final int y, final int z) throws Exception {
-        ObjectNode coords = MAPPER.createObjectNode();
-        coords.put("x", x);
-        coords.put("y", y);
-        coords.put("z", z);
+        JsonObject coords = new JsonObject();
+        coords.addProperty("x", x);
+        coords.addProperty("y", y);
+        coords.addProperty("z", z);
 
-        ObjectNode body = MAPPER.createObjectNode();
-        body.set("coords", coords);
-        body.put("bot_id", botId);
+        JsonObject body = new JsonObject();
+        body.add("coords", coords);
+        body.addProperty("bot_id", botId);
 
         HttpRequest req = newBuilder("/api/bot/orders/" + orderId + "/handoff")
             .POST(jsonBody(body))
@@ -109,12 +110,12 @@ public final class BackendClient {
     /**
      * Report that items have been dropped for the customer.
      */
-    public void reportDropped(final String orderId, final ObjectNode proof) throws Exception {
-        ObjectNode body = MAPPER.createObjectNode();
+    public void reportDropped(final String orderId, final JsonObject proof) throws Exception {
+        JsonObject body = new JsonObject();
         if (proof != null) {
-            body.set("proof", proof);
+            body.add("proof", proof);
         } else {
-            body.set("proof", MAPPER.createObjectNode());
+            body.add("proof", new JsonObject());
         }
 
         HttpRequest req = newBuilder("/api/bot/orders/" + orderId + "/dropped")
@@ -134,7 +135,7 @@ public final class BackendClient {
             .timeout(Duration.ofSeconds(15));
     }
 
-    private HttpRequest.BodyPublisher jsonBody(final ObjectNode node) {
-        return HttpRequest.BodyPublishers.ofString(node.toString());
+    private HttpRequest.BodyPublisher jsonBody(final JsonObject obj) {
+        return HttpRequest.BodyPublishers.ofString(GSON.toJson(obj));
     }
 }

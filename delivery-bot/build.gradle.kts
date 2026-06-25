@@ -33,8 +33,8 @@ repositories {
 dependencies {
     zenithProxy("com.zenith:ZenithProxy:$mc-SNAPSHOT")
 
-    // Jackson is shaded into the plugin jar so it is available at runtime.
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.17.0")
+    // Gson is bundled inside ZenithProxy at runtime; compileOnly makes it visible at compile time.
+    compileOnly("com.google.code.gson:gson:2.10.1")
 
     /** to include dependencies into your plugin jar **/
 //    shade("com.github.ben-manes.caffeine:caffeine:3.2.0")
