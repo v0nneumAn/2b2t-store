@@ -12,8 +12,15 @@ def create_delivery_job(db: Session, order: models.Order, depot: models.Depot):
         depot_id=depot.id,
         status="queued",
         payload={
+            "customer_ign": order.customer_ign,
             "delivery_coords": order.delivery_coords,
             "delivery_address": order.delivery_address,
+            "source_chest": {
+                "id": depot.id,
+                "x": depot.x,
+                "y": depot.y,
+                "z": depot.z,
+            },
             "items": [
                 {"product_id": item.product_id, "product_name": item.product_name, "quantity": item.quantity}
                 for item in order.items
@@ -34,6 +41,7 @@ def create_drop_job(db: Session, order: models.Order):
         depot_id=order.assigned_depot_id,
         status="queued",
         payload={
+            "customer_ign": order.customer_ign,
             "handoff_coords": order.handoff_coords,
             "items": [
                 {"product_id": item.product_id, "product_name": item.product_name, "quantity": item.quantity}

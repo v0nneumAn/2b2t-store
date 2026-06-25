@@ -14,6 +14,7 @@ function Checkout() {
   const [deliveryType, setDeliveryType] = useState('random')
   const [coords, setCoords] = useState({ x: '', y: '', z: '' })
   const [email, setEmail] = useState('')
+  const [ign, setIgn] = useState('')
   const [error, setError] = useState('')
 
   const STEPS = [
@@ -23,10 +24,11 @@ function Checkout() {
   ] as const
 
   const canContinue = () => {
+    if (!email.trim() || !ign.trim()) return false
     if (deliveryType === 'specified') {
-      return coords.x && coords.y && coords.z && email.trim().length > 0
+      return coords.x && coords.y && coords.z
     }
-    return email.trim().length > 0
+    return true
   }
 
   const handlePay = async () => {
@@ -48,6 +50,7 @@ function Checkout() {
         cart_id: cart.id,
         delivery_type: deliveryType,
         customer_email: email,
+        customer_ign: ign,
       }
       if (deliveryType === 'specified') {
         payload.delivery_coords = {
@@ -176,6 +179,19 @@ function Checkout() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-2">Minecraft username</label>
+              <input
+                type="text"
+                value={ign}
+                onChange={(e) => setIgn(e.target.value)}
+                placeholder="Notch"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2.5 text-white placeholder-zinc-600 focus:outline-none focus:border-orange-500/50"
+                required
+              />
+              <p className="text-zinc-500 text-xs mt-1.5">The in-game name we will deliver to.</p>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium mb-2">Delivery method</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
@@ -285,6 +301,10 @@ function Checkout() {
               <div className="flex justify-between">
                 <span className="text-zinc-400">Email</span>
                 <span>{email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Minecraft username</span>
+                <span>{ign}</span>
               </div>
             </div>
 

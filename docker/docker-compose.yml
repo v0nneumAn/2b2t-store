@@ -59,6 +59,29 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  delivery-bot:
+    build: ../delivery-bot
+    container_name: store-delivery-bot
+    environment:
+      - ZENITH_CONFIG_authentication_accountType=${DELIVERY_BOT_ACCOUNT_TYPE:-msa}
+      - ZENITH_CONFIG_authentication_username=${DELIVERY_BOT_USERNAME:-}
+      - ZENITH_CONFIG_client_server_address=${MINECRAFT_SERVER:-connect.2b2t.org}
+      - ZENITH_CONFIG_client_server_port=${MINECRAFT_PORT:-25565}
+      - ZENITH_CONFIG_client_autoConnect=${DELIVERY_BOT_AUTO_CONNECT:-true}
+      - ZENITH_CONFIG_server_bind_port=${DELIVERY_BOT_BIND_PORT:-25566}
+      - ZENITH_MC_VERSION=${ZENITH_MC_VERSION:-1.21.4}
+      - ZENITH_PLATFORM=${ZENITH_PLATFORM:-java}
+      - ZENITH_DISCORD_DISABLED=true
+    volumes:
+      - delivery-bot-config:/zenith/config
+      - ../delivery-bot/config/delivery-zenith.json:/zenith/config/delivery-zenith.json:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
   postgres:
     image: postgres:16-alpine
     container_name: store-postgres
@@ -86,3 +109,4 @@ volumes:
   backend-data:
   postgres-data:
   redis-data:
+  delivery-bot-config:

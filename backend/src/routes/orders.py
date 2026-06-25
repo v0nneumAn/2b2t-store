@@ -22,6 +22,7 @@ class OrderCreate(BaseModel):
     delivery_address: str | None = None
     customer_email: EmailStr | None = None
     customer_discord_id: str | None = None
+    customer_ign: str | None = Field(None, max_length=64)
 
     @field_validator("delivery_coords")
     @classmethod
@@ -89,6 +90,7 @@ def create_order(
         cart_id=cart.id,
         customer_email=payload.customer_email,
         customer_discord_id=payload.customer_discord_id,
+        customer_ign=payload.customer_ign,
         delivery_type=payload.delivery_type,
         delivery_coords=payload.delivery_coords,
         delivery_address=payload.delivery_address,
@@ -130,6 +132,7 @@ def _order_response(order: models.Order) -> dict:
         "delivery_coords": order.delivery_coords,
         "handoff_coords": order.handoff_coords,
         "assigned_bot": order.assigned_bot,
+        "customer_ign": order.customer_ign,
         "price_usd": str(order.price_usd),
         "paid_at": order.paid_at.isoformat() if order.paid_at else None,
         "customer_arrived_at": order.customer_arrived_at.isoformat() if order.customer_arrived_at else None,

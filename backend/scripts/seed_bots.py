@@ -19,7 +19,7 @@ DEMO_BOTS = [
         "id": "bot-delivery-alpha",
         "role": "delivery-alpha",
         "bot_type": "delivery",
-        "account_name": "DeliveryAlpha",
+        "account_name": os.getenv("DELIVERY_BOT_USERNAME", "DeliveryAlpha"),
         "status": "active",
         "config": {},
     },

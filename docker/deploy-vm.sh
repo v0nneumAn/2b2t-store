@@ -19,11 +19,21 @@ git -C .. pull origin main || true
 echo "Building and starting services..."
 docker compose $COMPOSE_FILES --env-file "$ENV_FILE" up -d --build
 
+echo "Generating delivery-bot config..."
+mkdir -p ../delivery-bot/config
+python3 ../delivery-bot/scripts/generate_config.py --env-file "$ENV_FILE" --output ../delivery-bot/config/delivery-zenith.json || true
+
 echo "Waiting for backend to become healthy..."
 sleep 5
 
+echo "Running database migrations..."
+docker exec store-backend python scripts/migrate_add_customer_ign.py || true
+
 echo "Seeding demo data..."
 docker exec store-backend python scripts/seed_demo.py || true
+
+echo "Seeding bot records..."
+docker exec store-backend python scripts/seed_bots.py || true
 
 FRONTEND_URL=$(grep '^FRONTEND_URL=' "$ENV_FILE" | cut -d= -f2- | tr -d '"')
 

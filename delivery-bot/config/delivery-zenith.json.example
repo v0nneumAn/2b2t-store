@@ -1,0 +1,19 @@
+{
+  "deliveryBot": {
+    "backendUrl": "http://backend:8000",
+    "botKey": "REPLACE_WITH_BOT_API_KEY",
+    "botId": "delivery-alpha",
+    "jobPollIntervalSeconds": 10,
+    "jobPollingEnabled": true,
+    "pearlBotEnabled": false,
+    "httpPort": 8080,
+    "pearlBotUrl": "http://pearl-bot:8081",
+    "apiSecret": "",
+    "sourceChests": [
+      {"id": "depot-alpha", "x": 100, "y": 64, "z": -200}
+    ],
+    "actionPriority": 1100000,
+    "onlineTimeoutSeconds": 7200,
+    "operationTimeoutSeconds": 180
+  }
+}
