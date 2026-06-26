@@ -15,36 +15,31 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [orders, products, depots, bots] = await Promise.all([
-          adminGet<unknown[]>('/admin/orders'),
-          adminGet<unknown[]>('/admin/products'),
-          adminGet<unknown[]>('/admin/depots'),
-          adminGet<unknown[]>('/admin/bots'),
-        ])
-        setStats({
-          orders: orders.length,
-          products: products.length,
-          depots: depots.length,
-          bots: bots.length,
-        })
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+  const loadStats = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await adminGet<Stats>('/admin/stats')
+      setStats(data)
+    } catch (err: any) {
+      setError(err.message || 'Failed to load dashboard stats.')
+    } finally {
+      setLoading(false)
     }
-    load()
+  }
+
+  useEffect(() => {
+    loadStats()
   }, [])
 
-  const statCards = [
-    { label: 'Orders', value: stats?.orders ?? 0, href: '/admin/orders' },
-    { label: 'Products', value: stats?.products ?? 0, href: '/admin/products' },
-    { label: 'Depots', value: stats?.depots ?? 0, href: '/admin/depots' },
-    { label: 'Bots', value: stats?.bots ?? 0, href: '/admin/bots' },
-  ]
+  const statCards = stats
+    ? [
+        { label: 'Orders', value: stats.orders, href: '/admin/orders' },
+        { label: 'Products', value: stats.products, href: '/admin/products' },
+        { label: 'Depots', value: stats.depots, href: '/admin/depots' },
+        { label: 'Bots', value: stats.bots, href: '/admin/bots' },
+      ]
+    : []
 
   return (
     <AdminLayout>
@@ -55,7 +50,14 @@ function Dashboard() {
 
       {error && (
         <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-200 px-4 py-3 rounded-lg">
-          {error}
+          <p className="font-medium">Error loading stats</p>
+          <p className="text-sm mt-1">{error}</p>
+          <button
+            onClick={loadStats}
+            className="mt-3 text-sm bg-red-500/20 hover:bg-red-500/30 text-red-100 px-3 py-1 rounded transition-colors"
+          >
+            Retry
+          </button>
         </div>
       )}
 

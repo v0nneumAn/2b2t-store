@@ -40,3 +40,8 @@ advert-bot/generated/*.json
 infra/testbed/kimi-testbed
 infra/testbed/kimi-testbed.pub
 paper-server/server/
+
+# AI session context docs (kept outside repo in ~/.kimi/context/2b2t-store)
+docs/SESSION_LOG.md
+docs/CONTEXT.md
+docs/SECURITY.md

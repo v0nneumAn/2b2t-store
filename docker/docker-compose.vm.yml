@@ -1,19 +1,21 @@
-# Tailscale VM deployment override for 2b2t Store.
+# Cloudflare Tunnel VM deployment override for 2b2t Store.
 #
 # Usage on the VM:
 #   cd /path/to/2b2t-store/docker
-#   docker compose -f docker-compose.yml -f docker-compose.vm.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.vm.yml --env-file .env.vm up -d
 #
-# This exposes the web frontend on port 80 so you can browse:
-#   http://<vm-tailscale-hostname>
-# And the backend API on port 8000:
-#   http://<vm-tailscale-hostname>:8000
+# This exposes the shop through a Cloudflare tunnel. No public host ports are
+# required because cloudflared runs inside the same Docker network and reaches
+# the Nginx frontend directly at http://web:80.
 
 services:
-  web:
-    ports:
-      - "80:80"
-
-  backend:
-    ports:
-      - "8000:8000"
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: 2b2t-store-tunnel
+    command: tunnel run --token ${TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_started
+      backend:
+        condition: service_healthy
