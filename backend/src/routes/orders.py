@@ -141,21 +141,33 @@ def _order_response(order: models.Order) -> dict:
     }
 
 
-@router.get("/by-email/{email}")
+class OrderLookup(BaseModel):
+    order_id: str = Field(..., min_length=1)
+    email: EmailStr
+
+
+@router.post("/lookup")
 @limiter.limit("10/minute")
-def list_orders_by_email(
+def lookup_order(
     request: Request,
-    email: str,
+    payload: OrderLookup,
     db: Session = Depends(get_db),
 ):
-    """Allow customers to look up all orders placed with a given email."""
-    orders = (
+    """Look up a single order by its ID and the email used at checkout.
+
+    Returns 404 for any mismatch to avoid email/order enumeration.
+    """
+    order = (
         db.query(models.Order)
-        .filter(models.Order.customer_email == email)
-        .order_by(models.Order.created_at.desc())
-        .all()
+        .filter(
+            models.Order.id == payload.order_id,
+            models.Order.customer_email == payload.email,
+        )
+        .first()
     )
-    return [_order_response(o) for o in orders]
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return _order_response(order)
 
 
 @router.get("/{order_id}")
