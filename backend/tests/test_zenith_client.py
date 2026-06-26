@@ -48,7 +48,7 @@ def test_get_bot_zenith_client_missing_config():
     assert get_bot_zenith_client({}) is None
 
 
-def test_admin_send_zenith_command_uses_bot_config(client, db):
+def test_admin_send_zenith_command_uses_bot_config(admin_client, db):
     bot = Bot(
         id="bot-delivery",
         role="delivery-alpha",
@@ -63,10 +63,9 @@ def test_admin_send_zenith_command_uses_bot_config(client, db):
     mock_resp.json.return_value = {"embed": "OK"}
 
     with patch("src.services.zenith_client.httpx.post", return_value=mock_resp) as mock_post:
-        resp = client.post(
+        resp = admin_client.post(
             "/api/bots/delivery-alpha/zenith/command",
             json={"command": "pathfinder goto 100 64 -200"},
-            headers={"X-Admin-Key": "test-admin-key"},
         )
 
     assert resp.status_code == 200
@@ -78,7 +77,7 @@ def test_admin_send_zenith_command_uses_bot_config(client, db):
     assert call_kwargs["headers"]["Authorization"] == "bot-secret"
 
 
-def test_admin_send_zenith_command_no_config(client, db):
+def test_admin_send_zenith_command_no_config(admin_client, db):
     bot = Bot(
         id="bot-delivery",
         role="delivery-beta",
@@ -88,10 +87,9 @@ def test_admin_send_zenith_command_no_config(client, db):
     db.add(bot)
     db.commit()
 
-    resp = client.post(
+    resp = admin_client.post(
         "/api/bots/delivery-beta/zenith/command",
         json={"command": "status"},
-        headers={"X-Admin-Key": "test-admin-key"},
     )
     # No global config in test env, so this should fail with 400.
     assert resp.status_code == 400

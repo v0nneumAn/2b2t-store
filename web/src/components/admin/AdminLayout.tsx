@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { clearAdminKey, getAdminKey } from '../../lib/admin'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { adminGet, adminPost } from '../../lib/admin'
 
 const navItems = [
   { path: '/admin', label: 'Dashboard' },
@@ -13,16 +13,36 @@ const navItems = [
 function AdminLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    if (!getAdminKey()) {
-      navigate('/admin/login')
+    let cancelled = false
+    adminGet('/admin/stats')
+      .then(() => {
+        if (!cancelled) setChecking(false)
+      })
+      .catch(() => {
+        if (!cancelled) navigate('/admin/login')
+      })
+    return () => {
+      cancelled = true
     }
   }, [navigate])
 
-  const handleLogout = () => {
-    clearAdminKey()
-    navigate('/admin/login')
+  const handleLogout = async () => {
+    try {
+      await adminPost('/admin/logout', {})
+    } finally {
+      navigate('/admin/login')
+    }
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0b] text-white flex items-center justify-center">
+        <div className="text-zinc-400">Checking session…</div>
+      </div>
+    )
   }
 
   return (

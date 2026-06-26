@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 os.environ["DATABASE_URL"] = "sqlite:///./test.db"
 os.environ["BOT_API_KEY"] = "test-bot-key"
 os.environ["ADMIN_API_KEY"] = "test-admin-key"
+os.environ["ADMIN_JWT_SECRET"] = "test-jwt-secret-do-not-use-in-production"
 os.environ["STRIPE_SECRET_KEY"] = "sk_test_xxx"
 os.environ["STRIPE_PUBLISHABLE_KEY"] = "pk_test_xxx"
 os.environ["STRIPE_WEBHOOK_SECRET"] = "whsec_xxx"
@@ -96,7 +97,15 @@ def client(db):
     db.add(depot)
     db.commit()
 
-    yield TestClient(app)
+    yield TestClient(app, base_url="https://testserver")
+
+
+@pytest.fixture(scope="function")
+def admin_client(client):
+    """Client authenticated as admin via HttpOnly cookie."""
+    resp = client.post("/api/admin/login", json={"key": "test-admin-key"})
+    assert resp.status_code == 200
+    yield client
 
 
 @pytest.fixture(scope="function")

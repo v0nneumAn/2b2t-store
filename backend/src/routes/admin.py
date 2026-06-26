@@ -1,6 +1,6 @@
 import secrets
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field, HttpUrl
 from sqlalchemy.orm import Session
 
@@ -40,17 +40,21 @@ class DepotCreate(BaseModel):
     inventory: dict = {}
 
 
+class AdminLogin(BaseModel):
+    key: str = Field(..., min_length=1)
+
+
 class DemoAdvance(BaseModel):
     to: str = Field(..., pattern="^(ready_for_pickup|customer_arrived|dropping|delivered|completed)$")
 
 
-@router.get("/products", dependencies=[Depends(auth.require_admin_key)])
+@router.get("/products", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("60/minute")
 def list_products_admin(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Product).all()
 
 
-@router.post("/products", dependencies=[Depends(auth.require_admin_key)])
+@router.post("/products", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("10/minute")
 def create_product(request: Request, payload: ProductCreate, db: Session = Depends(get_db)):
     product = models.Product(
@@ -63,25 +67,25 @@ def create_product(request: Request, payload: ProductCreate, db: Session = Depen
     return product
 
 
-@router.get("/orders", dependencies=[Depends(auth.require_admin_key)])
+@router.get("/orders", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("30/minute")
 def list_orders(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Order).all()
 
 
-@router.get("/depots", dependencies=[Depends(auth.require_admin_key)])
+@router.get("/depots", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("60/minute")
 def list_depots(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Depot).all()
 
 
-@router.get("/bots", dependencies=[Depends(auth.require_admin_key)])
+@router.get("/bots", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("60/minute")
 def list_bots_admin(request: Request, db: Session = Depends(get_db)):
     return db.query(models.Bot).all()
 
 
-@router.get("/stats", dependencies=[Depends(auth.require_admin_key)])
+@router.get("/stats", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("60/minute")
 def admin_stats(request: Request, db: Session = Depends(get_db)):
     return {
@@ -92,7 +96,7 @@ def admin_stats(request: Request, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/depots", dependencies=[Depends(auth.require_admin_key)])
+@router.post("/depots", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("10/minute")
 def create_depot(request: Request, payload: DepotCreate, db: Session = Depends(get_db)):
     depot = models.Depot(
@@ -105,10 +109,35 @@ def create_depot(request: Request, payload: DepotCreate, db: Session = Depends(g
     return depot
 
 
-@router.get("/demo-mode", dependencies=[Depends(auth.require_admin_key)])
+@router.get("/demo-mode", dependencies=[Depends(auth.require_admin_cookie)])
 @limiter.limit("60/minute")
 def demo_mode_status(request: Request):
     return {"enabled": get_settings().demo_mode}
+
+
+@router.post("/login")
+@limiter.limit("10/minute")
+def admin_login(
+    request: Request,
+    payload: AdminLogin,
+    response: Response,
+):
+    """Validate the admin API key and start an HttpOnly cookie session."""
+    settings = get_settings()
+    if not secrets.compare_digest(payload.key, settings.admin_api_key):
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+    auth.set_admin_cookie(response)
+    return {"status": "ok"}
+
+
+@router.post("/logout")
+@limiter.limit("60/minute")
+def admin_logout(
+    request: Request,
+    response: Response,
+):
+    auth.clear_admin_cookie(response)
+    return {"status": "ok"}
 
 
 @router.post("/orders/{order_id}/demo-advance")
@@ -118,7 +147,7 @@ def demo_advance_order(
     order_id: str,
     payload: DemoAdvance,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_admin_key),
+    _=Depends(auth.require_admin_cookie),
 ):
     """
     Demo-only: manually advance an order through delivery states as if the bot

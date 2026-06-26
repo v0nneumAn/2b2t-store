@@ -147,7 +147,7 @@ def send_zenith_command(
     role: str,
     payload: ZenithCommandRequest,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_admin_key),
+    _=Depends(auth.require_admin_cookie),
 ):
     """
     Send a command directly to a ZenithProxy Web API instance.

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { setAdminKey, adminGet } from '../../lib/admin'
+import { adminPost } from '../../lib/admin'
 
 function Login() {
   const [key, setKey] = useState('')
@@ -14,9 +14,7 @@ function Login() {
     setError('')
 
     try {
-      setAdminKey(key)
-      // Validate key by hitting admin orders endpoint.
-      await adminGet('/admin/orders')
+      await adminPost('/admin/login', { key })
       navigate('/admin')
     } catch (err: any) {
       setError(err.message || 'Invalid admin key')

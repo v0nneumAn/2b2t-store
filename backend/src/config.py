@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     bot_api_key: str
     admin_api_key: str
 
+    # JWT secret for admin session cookies
+    admin_jwt_secret: str
+
     # Demo features
     demo_mode: bool = False
 

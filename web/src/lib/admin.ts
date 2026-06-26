@@ -1,31 +1,9 @@
-const ADMIN_KEY_STORAGE = 'shulker_admin_key'
-
-export function getAdminKey(): string | null {
-  return sessionStorage.getItem(ADMIN_KEY_STORAGE)
-}
-
-export function setAdminKey(key: string): void {
-  sessionStorage.setItem(ADMIN_KEY_STORAGE, key)
-}
-
-export function clearAdminKey(): void {
-  sessionStorage.removeItem(ADMIN_KEY_STORAGE)
-}
-
-export function adminHeaders(): Record<string, string> {
-  const key = getAdminKey()
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (key) {
-    headers['X-Admin-Key'] = key
-  }
-  return headers
-}
-
 export async function adminFetch(path: string, options: RequestInit = {}): Promise<Response> {
   return fetch(`/api${path}`, {
     ...options,
+    credentials: 'same-origin',
     headers: {
-      ...adminHeaders(),
+      'Content-Type': 'application/json',
       ...(options.headers || {}),
     },
   })
