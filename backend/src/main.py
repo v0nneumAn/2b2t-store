@@ -37,7 +37,15 @@ app.add_middleware(
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "X-Session-Id", "X-Bot-Key", "X-Admin-Key"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "X-Session-Id",
+        "X-Bot-Id",
+        "X-Bot-Key",
+        "X-Discord-Id",
+        "X-Admin-Key",
+    ],
 )
 
 
