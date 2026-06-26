@@ -23,7 +23,7 @@ function Bots() {
   const load = async () => {
     setLoading(true)
     try {
-      const data = await adminGet<Bot[]>('/api/bots')
+      const data = await adminGet<Bot[]>('/bots')
       setBots(data)
       if (data.length > 0 && !selectedRole) {
         setSelectedRole(data[0].role)
