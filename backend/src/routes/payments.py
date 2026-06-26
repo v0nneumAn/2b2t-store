@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 import stripe
 
 from .. import models
+from sqlalchemy.exc import IntegrityError
 from ..limiter import limiter
 from ..models import get_db, OrderStatus
 from ..routes.orders import _get_session_id, _get_discord_id, _verify_customer_access
@@ -68,12 +69,13 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     event_id = event.get("id")
     if event_id:
-        existing = (
-            db.query(models.ProcessedStripeEvent)
-            .filter(models.ProcessedStripeEvent.id == event_id)
-            .first()
-        )
-        if existing:
+        # Atomic deduplication: the INSERT will fail if another worker already
+        # processed this event, because id is the primary key.
+        db.add(models.ProcessedStripeEvent(id=event_id))
+        try:
+            db.flush()
+        except IntegrityError:
+            db.rollback()
             return {"status": "already processed"}
 
     if event["type"] == "checkout.session.completed":
@@ -127,9 +129,6 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 order.assigned_depot_id = depot.id
                 reserve_stock(db, depot, order)
                 create_delivery_job(db, order, depot)
-
-    if event_id:
-        db.add(models.ProcessedStripeEvent(id=event_id))
 
     db.commit()
     return {"status": "ok"}
