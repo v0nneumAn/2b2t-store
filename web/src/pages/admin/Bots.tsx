@@ -11,6 +11,17 @@ interface Bot {
   config: Record<string, unknown>
 }
 
+function parseError(err: any): string {
+  if (!err?.message) return 'Request failed'
+  try {
+    const parsed = JSON.parse(err.message)
+    if (parsed.detail) return parsed.detail
+  } catch {
+    // fall through
+  }
+  return err.message
+}
+
 function Bots() {
   const [bots, setBots] = useState<Bot[]>([])
   const [selectedRole, setSelectedRole] = useState('')
@@ -22,6 +33,7 @@ function Bots() {
 
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
       const data = await adminGet<Bot[]>('/bots')
       setBots(data)
@@ -29,7 +41,7 @@ function Bots() {
         setSelectedRole(data[0].role)
       }
     } catch (err: any) {
-      setError(err.message)
+      setError(parseError(err))
     } finally {
       setLoading(false)
     }
@@ -55,7 +67,7 @@ function Bots() {
       const multiLine = result.response.multiLineOutput?.join('\n') || ''
       setCommandOutput(embed + (multiLine ? '\n' + multiLine : ''))
     } catch (err: any) {
-      setError(err.message)
+      setError(parseError(err))
     } finally {
       setSending(false)
     }
@@ -185,8 +197,9 @@ function Bots() {
                 <li>pathfinder goto x y z</li>
                 <li>pathfinder click right x y z</li>
                 <li>inventory</li>
-                <li>sendMessage /kill</li>
                 <li>disconnect</li>
+                <li>connect</li>
+                <li>respawn</li>
               </ul>
             </div>
           </div>
