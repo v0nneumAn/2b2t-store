@@ -2,8 +2,7 @@ services:
   backend:
     build: ../backend
     container_name: store-backend
-    ports:
-      - "8000:8000"
+    # No host ports in the base file. Use docker-compose.dev.yml for local debugging.
     environment:
       - DATABASE_URL=postgresql+psycopg2://store:${POSTGRES_PASSWORD}@postgres:5432/store
       - REDIS_URL=redis://redis:6379/0
@@ -41,8 +40,7 @@ services:
   web:
     build: ../web
     container_name: store-web
-    ports:
-      - "5173:80"
+    # No host ports in the base file. Use docker-compose.dev.yml for local debugging.
     depends_on:
       backend:
         condition: service_healthy
@@ -118,8 +116,7 @@ services:
     working_dir: /paper
     volumes:
       - ../paper-server/server:/paper
-    ports:
-      - "25565:25565"
+    # No host ports in the base file. Use docker-compose.dev.yml for local debugging.
     command: ["./start.sh"]
     environment:
       EULA: "true"

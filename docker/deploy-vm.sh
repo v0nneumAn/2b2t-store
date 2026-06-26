@@ -40,5 +40,7 @@ FRONTEND_URL=$(grep '^FRONTEND_URL=' "$ENV_FILE" | cut -d= -f2- | tr -d '"')
 echo ""
 echo "Deployment complete."
 echo "Web:    ${FRONTEND_URL:-http://<your-domain>}"
-echo "API:    ${FRONTEND_URL:-http://<your-domain>}:8000"
 echo "Admin:  ${FRONTEND_URL:-http://<your-domain>}/admin"
+echo ""
+echo "NOTE: The backend API is intentionally not exposed on a host port."
+echo "      All traffic enters through the web frontend / Cloudflare tunnel."

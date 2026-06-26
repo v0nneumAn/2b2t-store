@@ -1,0 +1,17 @@
+# Local development overrides: expose debugging/game ports on the host.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  backend:
+    ports:
+      - "8000:8000"
+
+  web:
+    ports:
+      - "5173:80"
+
+  paper:
+    ports:
+      - "25565:25565"

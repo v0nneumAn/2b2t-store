@@ -70,6 +70,9 @@ cd /opt/2b2t-store/docker
 docker compose -f docker-compose.yml -f docker-compose.vm.yml --env-file .env.vm up -d --build
 ```
 
+The base compose file does **not** publish host ports. The Cloudflare tunnel service
+reaches Nginx directly over the Docker network, so no public ports are required.
+
 This starts:
 - Backend on VM port `8000`
 - Web frontend on VM port `80`
@@ -142,6 +145,13 @@ cd /opt/2b2t-store
 git pull origin main
 cd docker
 docker compose -f docker-compose.yml -f docker-compose.vm.yml --env-file .env.vm up -d --build
+```
+
+For local development (exposes ports 8000, 5173 and 25565):
+
+```bash
+cd /path/to/2b2t-store/docker
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 ```
 
 ## 8. Firewall notes
