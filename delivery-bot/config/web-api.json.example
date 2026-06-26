@@ -1,0 +1,10 @@
+{
+  "enabled": true,
+  "port": 8082,
+  "authToken": "REPLACE_WITH_ZENITH_WEB_API_TOKEN",
+  "webUI": true,
+  "logRetentionEntries": 500,
+  "rateLimiter": true,
+  "rateLimitRequestsPerMinute": 30,
+  "commandsAccountOwnerPerms": false
+}
