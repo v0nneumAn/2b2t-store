@@ -46,3 +46,7 @@ docs/SESSION_LOG.md
 docs/CONTEXT.md
 docs/SECURITY.md
 .env.vm
+
+# Advert-bot runtime configs (per-bot secrets)
+advert-bot/config/adbot-alpha/
+advert-bot/config/adbot-beta/

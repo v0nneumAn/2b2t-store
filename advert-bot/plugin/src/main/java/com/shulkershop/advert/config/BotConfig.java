@@ -9,7 +9,7 @@ import java.nio.file.Path;
 public class BotConfig {
 
     public String backendUrl = "http://localhost:8000";
-    public String botApiKey = "change-me-in-production";
+    public String botApiKey = null;
     public String botRole = "adbot-alpha";
     public String shopShortlink = "shulker.shop";
     public int pollIntervalSeconds = 10;
@@ -33,6 +33,12 @@ public class BotConfig {
 
     public static BotConfig load(Path path) throws Exception {
         String json = Files.readString(path);
-        return GSON.fromJson(json, BotConfig.class);
+        BotConfig config = GSON.fromJson(json, BotConfig.class);
+        if (config.botApiKey == null || config.botApiKey.isBlank()
+                || "change-me-in-production".equals(config.botApiKey)) {
+            throw new IllegalStateException(
+                "botApiKey must be set in the advert-bot config (path: " + path + ")");
+        }
+        return config;
     }
 }
