@@ -6,6 +6,9 @@ import { apiError } from '../lib/api'
 
 type Step = 'account' | 'payment' | 'processing'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const IGN_REGEX = /^[a-zA-Z0-9_]{3,16}$/
+
 function Checkout() {
   const navigate = useNavigate()
   const { items, total, clearCart } = useCartStore()
@@ -16,6 +19,7 @@ function Checkout() {
   const [email, setEmail] = useState('')
   const [ign, setIgn] = useState('')
   const [error, setError] = useState('')
+  const [paying, setPaying] = useState(false)
 
   const STEPS = [
     { id: 'account', label: 'Account' },
@@ -31,7 +35,41 @@ function Checkout() {
     return true
   }
 
+  const validateInputs = (): string | null => {
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) return 'Email is required.'
+    if (!EMAIL_REGEX.test(trimmedEmail)) return 'Please enter a valid email address.'
+
+    const trimmedIgn = ign.trim()
+    if (!trimmedIgn) return 'Minecraft username is required.'
+    if (!IGN_REGEX.test(trimmedIgn)) {
+      return 'Minecraft username must be 3–16 characters and only contain letters, numbers, and underscores.'
+    }
+
+    if (deliveryType === 'specified') {
+      const x = parseInt(coords.x)
+      const y = parseInt(coords.y)
+      const z = parseInt(coords.z)
+      if ([x, y, z].some((v) => Number.isNaN(v))) {
+        return 'Coordinates must be valid numbers.'
+      }
+      if ([x, y, z].some((v) => v < -30000000 || v > 30000000)) {
+        return 'Coordinates are outside the valid Minecraft world range.'
+      }
+    }
+
+    if (items.length === 0) return 'Your cart is empty.'
+    return null
+  }
+
   const handlePay = async () => {
+    const validationError = validateInputs()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setPaying(true)
     setStep('processing')
     setError('')
 
@@ -75,7 +113,7 @@ function Checkout() {
 
       const checkoutRes = await fetch(`/api/payments/checkout/${order.id}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...sessionHeaders() },
       })
 
       if (!checkoutRes.ok) {
@@ -83,11 +121,16 @@ function Checkout() {
       }
 
       const checkout = await checkoutRes.json()
+      if (!checkout.checkout_url) {
+        throw new Error('Payment provider did not return a checkout URL.')
+      }
       clearCart()
       window.location.href = checkout.checkout_url
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || 'Payment setup failed. Please try again.')
       setStep('payment')
+    } finally {
+      setPaying(false)
     }
   }
 
@@ -317,9 +360,10 @@ function Checkout() {
               </button>
               <button
                 onClick={handlePay}
-                className="flex-[2] py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors"
+                disabled={paying}
+                className="flex-[2] py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-zinc-700 disabled:text-zinc-400 text-white font-semibold rounded-lg transition-colors"
               >
-                Pay with Stripe
+                {paying ? 'Creating order…' : 'Pay with Stripe'}
               </button>
             </div>
           </div>
