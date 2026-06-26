@@ -34,6 +34,8 @@ Thumbs.db
 # Project specific
 backend/data/
 delivery-bot/config.json
+delivery-bot/config/delivery-zenith.json
+delivery-bot/config/web-api.json
 advert-bot/config/**/*.json
 !advert-bot/config/**/*.example
 advert-bot/generated/*.json
