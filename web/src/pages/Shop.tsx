@@ -207,6 +207,12 @@ function Shop() {
                     src={product.image_url || '/assets/landing/placeholder.png'}
                     alt={product.name}
                     className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      const target = e.currentTarget
+                      if (target.src !== window.location.origin + '/assets/landing/placeholder.png') {
+                        target.src = '/assets/landing/placeholder.png'
+                      }
+                    }}
                   />
                 </div>
 
