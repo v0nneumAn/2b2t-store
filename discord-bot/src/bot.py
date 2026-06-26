@@ -22,19 +22,26 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 _notified_order_ids: set[str] = set()
 
 
-def _api_headers():
+def _api_headers(discord_id: str | None = None):
     headers = {}
     if BOT_API_KEY:
         headers["X-Bot-Key"] = BOT_API_KEY
+    if discord_id:
+        headers["X-Discord-Id"] = discord_id
     return headers
 
 
-def backend_get(path: str):
-    return httpx.get(f"{BACKEND_URL}{path}", headers=_api_headers(), timeout=10)
+def backend_get(path: str, discord_id: str | None = None):
+    return httpx.get(f"{BACKEND_URL}{path}", headers=_api_headers(discord_id), timeout=10)
 
 
-def backend_post(path: str, json: dict):
-    return httpx.post(f"{BACKEND_URL}{path}", headers=_api_headers(), json=json, timeout=10)
+def backend_post(path: str, json: dict, discord_id: str | None = None):
+    return httpx.post(
+        f"{BACKEND_URL}{path}",
+        headers=_api_headers(discord_id),
+        json=json,
+        timeout=10,
+    )
 
 
 @bot.event
@@ -115,19 +122,22 @@ async def cart_checkout(interaction: discord.Interaction):
 async def cart_checkout_id(interaction: discord.Interaction, cart_id: str):
     await interaction.response.defer(ephemeral=True)
     try:
+        discord_id = str(interaction.user.id)
         order_resp = backend_post(
             "/api/orders",
             {
                 "cart_id": cart_id,
                 "delivery_type": "random",
-                "customer_discord_id": str(interaction.user.id),
+                "customer_discord_id": discord_id,
             },
         )
         if not order_resp.is_success:
             raise Exception(order_resp.text)
         order = order_resp.json()
 
-        checkout_resp = backend_post(f"/api/payments/checkout/{order['id']}", {})
+        checkout_resp = backend_post(
+            f"/api/payments/checkout/{order['id']}", {}, discord_id=discord_id
+        )
         if not checkout_resp.is_success:
             raise Exception(checkout_resp.text)
         checkout = checkout_resp.json()
@@ -145,7 +155,7 @@ async def cart_checkout_id(interaction: discord.Interaction, cart_id: str):
 async def order_status(interaction: discord.Interaction, order_id: str):
     await interaction.response.defer(ephemeral=True)
     try:
-        resp = backend_get(f"/api/orders/{order_id}")
+        resp = backend_get(f"/api/orders/{order_id}", discord_id=str(interaction.user.id))
         order = resp.json()
         status = order["status"].replace("_", " ").title()
         message = (
@@ -243,7 +253,9 @@ async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
         return
 
     try:
-        resp = backend_post(f"/api/orders/{order_id}/arrived", {})
+        resp = backend_post(
+            f"/api/orders/{order_id}/arrived", {}, discord_id=str(user.id)
+        )
         if resp.is_success:
             await reaction.message.reply("Arrival confirmed! The bot will drop your items shortly.")
         else:

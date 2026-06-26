@@ -36,6 +36,10 @@ def _get_session_id(x_session_id: str | None = Header(None)) -> str | None:
     return x_session_id
 
 
+def _get_discord_id(x_discord_id: str | None = Header(None)) -> str | None:
+    return x_discord_id
+
+
 @router.post("")
 @limiter.limit("10/minute")
 def create_order(
@@ -117,11 +121,35 @@ def create_order(
     return order
 
 
-def _verify_order_ownership(order: models.Order, session_id: str | None, db: Session):
+def _verify_customer_access(
+    order: models.Order,
+    session_id: str | None,
+    discord_id: str | None,
+    db: Session,
+) -> None:
+    """Ensure the caller owns the order via web session or Discord identity.
+
+    Raises a 404 to avoid leaking order existence.
+    """
     if order.cart_id:
         cart = db.query(models.Cart).filter(models.Cart.id == order.cart_id).first()
-        if cart and cart.session_id and cart.session_id != session_id:
-            raise HTTPException(status_code=404, detail="Order not found")
+        if cart:
+            if cart.session_id:
+                if session_id and cart.session_id == session_id:
+                    return
+                raise HTTPException(status_code=404, detail="Order not found")
+            if cart.discord_id:
+                if discord_id and cart.discord_id == discord_id:
+                    return
+                raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.customer_discord_id:
+        if discord_id and order.customer_discord_id == discord_id:
+            return
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # No ownership mechanism available.
+    raise HTTPException(status_code=404, detail="Order not found")
 
 
 def _order_response(order: models.Order) -> dict:
@@ -177,11 +205,12 @@ def get_order(
     order_id: str,
     db: Session = Depends(get_db),
     session_id: str | None = Depends(_get_session_id),
+    discord_id: str | None = Depends(_get_discord_id),
 ):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    _verify_order_ownership(order, session_id, db)
+    _verify_customer_access(order, session_id, discord_id, db)
     return _order_response(order)
 
 
@@ -192,12 +221,13 @@ def confirm_customer_arrival(
     order_id: str,
     db: Session = Depends(get_db),
     session_id: str | None = Depends(_get_session_id),
+    discord_id: str | None = Depends(_get_discord_id),
 ):
     """Customer confirms they are at the handoff location."""
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    _verify_order_ownership(order, session_id, db)
+    _verify_customer_access(order, session_id, discord_id, db)
 
     if order.status != OrderStatus.READY_FOR_PICKUP.value:
         raise HTTPException(
@@ -220,11 +250,12 @@ def get_payment_status(
     order_id: str,
     db: Session = Depends(get_db),
     session_id: str | None = Depends(_get_session_id),
+    discord_id: str | None = Depends(_get_discord_id),
 ):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    _verify_order_ownership(order, session_id, db)
+    _verify_customer_access(order, session_id, discord_id, db)
     return {
         "order_id": order.id,
         "status": order.status,

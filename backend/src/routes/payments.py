@@ -7,6 +7,7 @@ import stripe
 from .. import models
 from ..limiter import limiter
 from ..models import get_db, OrderStatus
+from ..routes.orders import _get_session_id, _get_discord_id, _verify_customer_access
 from ..services.depots import assign_depot, reserve_stock
 from ..services.delivery_queue import create_delivery_job
 from ..services.stripe_client import get_stripe_client
@@ -20,10 +21,14 @@ def create_checkout_session(
     request: Request,
     order_id: str,
     db: Session = Depends(get_db),
+    session_id: str | None = Depends(_get_session_id),
+    discord_id: str | None = Depends(_get_discord_id),
 ):
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    _verify_customer_access(order, session_id, discord_id, db)
+
     if order.status != OrderStatus.AWAITING_PAYMENT.value:
         raise HTTPException(status_code=400, detail="Order is not awaiting payment")
 
