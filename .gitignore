@@ -45,3 +45,4 @@ paper-server/server/
 docs/SESSION_LOG.md
 docs/CONTEXT.md
 docs/SECURITY.md
+.env.vm
