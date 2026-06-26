@@ -36,6 +36,7 @@ _JOB_STATUS_TO_ORDER_STATUS = {
 
 @router.get("/jobs/next")
 def next_job(db: Session = Depends(get_db), _=Depends(auth.require_bot_key)):
+    """Poll for the next queued delivery job (read-only; any authenticated bot)."""
     job = (
         db.query(models.DeliveryJob)
         .filter(models.DeliveryJob.status == "queued")
@@ -71,21 +72,42 @@ def list_ready_orders(db: Session = Depends(get_db), _=Depends(auth.require_bot_
 
 
 @router.post("/jobs/{job_id}/claim")
-def claim_job(job_id: str, bot_id: str, db: Session = Depends(get_db), _=Depends(auth.require_bot_key)):
+def claim_job(
+    job_id: str,
+    bot_id: str,
+    db: Session = Depends(get_db),
+    bot: models.Bot = Depends(auth.require_bot_identity),
+):
+    """Claim a job. The authenticated bot can only claim jobs for itself."""
+    if bot_id != bot.id and bot_id != bot.role:
+        raise HTTPException(status_code=403, detail="Cannot claim job for another bot")
+
     job = db.query(models.DeliveryJob).filter(models.DeliveryJob.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if job.bot_id and job.bot_id != bot.id and job.bot_id != bot.role:
+        raise HTTPException(status_code=409, detail="Job already claimed by another bot")
+
     job.status = "claimed"
-    job.bot_id = bot_id
+    job.bot_id = bot.id
     db.commit()
     return {"success": True}
 
 
 @router.post("/jobs/{job_id}/update")
-def update_job(job_id: str, payload: JobUpdate, db: Session = Depends(get_db), _=Depends(auth.require_bot_key)):
+def update_job(
+    job_id: str,
+    payload: JobUpdate,
+    db: Session = Depends(get_db),
+    bot: models.Bot = Depends(auth.require_bot_identity),
+):
+    """Update a job. Only the bot that claimed the job may update it."""
     job = db.query(models.DeliveryJob).filter(models.DeliveryJob.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    if job.bot_id and job.bot_id != bot.id and job.bot_id != bot.role:
+        raise HTTPException(status_code=403, detail="Job assigned to another bot")
+
     job.status = payload.status
     if payload.payload:
         job.payload = payload.payload
@@ -106,9 +128,12 @@ def report_handoff(
     order_id: str,
     payload: HandoffReport,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_bot_key),
+    bot: models.Bot = Depends(auth.require_bot_identity),
 ):
     """Delivery bot reports the EnderChest handoff coordinates near spawn."""
+    if payload.bot_id != bot.id and payload.bot_id != bot.role:
+        raise HTTPException(status_code=403, detail="Cannot report handoff for another bot")
+
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -149,12 +174,14 @@ def report_dropped(
     order_id: str,
     payload: DropReport,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_bot_key),
+    bot: models.Bot = Depends(auth.require_bot_identity),
 ):
     """Delivery bot reports that items have been dropped for the customer."""
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+    if order.assigned_bot and order.assigned_bot != bot.id and order.assigned_bot != bot.role:
+        raise HTTPException(status_code=403, detail="Order assigned to another bot")
 
     allowed_source_states = {
         OrderStatus.CUSTOMER_ARRIVED.value,

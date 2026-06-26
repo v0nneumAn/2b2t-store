@@ -51,7 +51,7 @@ def test_get_bot_zenith_client_missing_config():
 def test_admin_send_zenith_command_uses_bot_config(admin_client, db):
     bot = Bot(
         id="bot-delivery",
-        role="delivery-alpha",
+        role="delivery-beta",
         bot_type="delivery",
         config={"web_api": {"url": "http://zenith:8080", "token": "bot-secret"}},
     )
@@ -64,7 +64,7 @@ def test_admin_send_zenith_command_uses_bot_config(admin_client, db):
 
     with patch("src.services.zenith_client.httpx.post", return_value=mock_resp) as mock_post:
         resp = admin_client.post(
-            "/api/bots/delivery-alpha/zenith/command",
+            "/api/bots/delivery-beta/zenith/command",
             json={"command": "pathfinder goto 100 64 -200"},
         )
 

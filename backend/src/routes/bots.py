@@ -63,7 +63,7 @@ class ZenithCommandResponse(BaseModel):
 def create_bot(
     payload: BotCreate,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_bot_key),
+    _=Depends(auth.require_admin_cookie),
 ):
     existing = db.query(models.Bot).filter(models.Bot.role == payload.role).first()
     if existing:
@@ -79,7 +79,7 @@ def create_bot(
 def list_bots(
     bot_type: Optional[str] = None,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_bot_key),
+    _=Depends(auth.require_admin_cookie),
 ):
     query = db.query(models.Bot)
     if bot_type:
@@ -91,7 +91,7 @@ def list_bots(
 def get_bot(
     role: str,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_bot_key),
+    _=Depends(auth.require_admin_cookie),
 ):
     bot = db.query(models.Bot).filter(models.Bot.role == role).first()
     if not bot:
@@ -104,7 +104,7 @@ def create_command(
     role: str,
     payload: BotCommandCreate,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_bot_key),
+    _=Depends(auth.require_admin_cookie),
 ):
     bot = db.query(models.Bot).filter(models.Bot.role == role).first()
     if not bot:
@@ -125,8 +125,11 @@ def create_command(
 def next_command(
     role: str,
     db: Session = Depends(get_db),
-    _=Depends(auth.require_bot_key),
+    bot: models.Bot = Depends(auth.require_bot_identity),
 ):
+    if role != bot.role and role != bot.id:
+        raise HTTPException(status_code=403, detail="Cannot fetch commands for another bot")
+
     cmd = (
         db.query(models.BotCommand)
         .filter(

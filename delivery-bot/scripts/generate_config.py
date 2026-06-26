@@ -26,17 +26,25 @@ def main():
     def get(key, default=None):
         return os.getenv(key, env.get(key, default))
 
+    bot_key = get("DELIVERY_BOT_API_KEY") or get("BOT_API_KEY", "")
+    bot_id = get("DELIVERY_BOT_BOT_ID", "delivery-alpha")
+    api_secret = get("DELIVERY_BOT_API_SECRET", "")
+    if not bot_key:
+        raise SystemExit("DELIVERY_BOT_API_KEY (or BOT_API_KEY) must be set")
+    if not api_secret:
+        raise SystemExit("DELIVERY_BOT_API_SECRET must be set")
+
     config = {
         "deliveryBot": {
             "backendUrl": get("BACKEND_URL", "http://backend:8000"),
-            "botKey": get("BOT_API_KEY", ""),
-            "botId": get("DELIVERY_BOT_BOT_ID", "delivery-alpha"),
+            "botKey": bot_key,
+            "botId": bot_id,
             "jobPollIntervalSeconds": int(get("DELIVERY_BOT_POLL_INTERVAL_SECONDS", "10")),
             "jobPollingEnabled": get("DELIVERY_BOT_POLLING_ENABLED", "true").lower() == "true",
             "pearlBotEnabled": get("DELIVERY_BOT_PEARL_BOT_ENABLED", "false").lower() == "true",
             "httpPort": int(get("DELIVERY_BOT_HTTP_PORT", "8080")),
             "pearlBotUrl": get("PEARL_BOT_URL", "http://pearl-bot:8081"),
-            "apiSecret": get("DELIVERY_BOT_API_SECRET", ""),
+            "apiSecret": api_secret,
             "sourceChests": [],
             "actionPriority": 1_100_000,
             "onlineTimeoutSeconds": 7200,
@@ -56,6 +64,7 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w") as f:
         json.dump(config, f, indent=2)
+    out.chmod(0o600)
 
     print(f"Wrote {out}")
 

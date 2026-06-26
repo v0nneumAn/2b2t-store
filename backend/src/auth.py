@@ -1,10 +1,13 @@
 import hmac
 import secrets
 from datetime import datetime, timezone, timedelta
-from fastapi import Cookie, Header, HTTPException, Response
+from fastapi import Cookie, Depends, Header, HTTPException, Response
 import jwt
 from jwt.exceptions import InvalidTokenError
+from sqlalchemy.orm import Session
+from . import models
 from .config import get_settings
+from .models import get_db
 
 
 ADMIN_COOKIE_NAME = "admin_session"
@@ -70,3 +73,41 @@ def require_admin_cookie(admin_session: str | None = Cookie(None)) -> None:
 
     if payload.get("sub") != "admin":
         raise HTTPException(status_code=403, detail="Invalid session")
+
+
+def require_bot_identity(
+    x_bot_id: str | None = Header(None),
+    x_bot_key: str | None = Header(None),
+    db: Session = Depends(get_db),
+) -> models.Bot:
+    """Authenticate a bot by its ID/role and per-bot API key.
+
+    Falls back to the global BOT_API_KEY for bots that do not yet have a
+    per-bot key configured, but a key must be present in the Bot record before
+    any mutating endpoint can be used.
+    """
+    if not x_bot_id:
+        raise HTTPException(status_code=401, detail="Missing bot ID")
+    if not x_bot_key:
+        raise HTTPException(status_code=401, detail="Missing bot API key")
+
+    bot = (
+        db.query(models.Bot)
+        .filter((models.Bot.id == x_bot_id) | (models.Bot.role == x_bot_id))
+        .first()
+    )
+
+    if bot and bot.config and bot.config.get("api_key"):
+        if not secrets.compare_digest(x_bot_key, bot.config["api_key"]):
+            raise HTTPException(status_code=403, detail="Invalid bot credentials")
+        return bot
+
+    # No per-bot key yet: accept global key for read-only compatibility.
+    settings = get_settings()
+    if not secrets.compare_digest(x_bot_key, settings.bot_api_key):
+        raise HTTPException(status_code=403, detail="Invalid bot credentials")
+
+    if not bot:
+        raise HTTPException(status_code=403, detail="Invalid bot credentials")
+
+    return bot

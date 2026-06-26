@@ -20,6 +20,7 @@ public final class BackendClient {
 
     private static final Gson GSON = new Gson();
     private static final HttpClient HTTP = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
         .connectTimeout(Duration.ofSeconds(10))
         .build();
 
@@ -76,7 +77,7 @@ public final class BackendClient {
             body.add("payload", payload);
         }
 
-        HttpRequest req = newBuilder("/api/bot/jobs/" + jobId + "/update")
+        HttpRequest req = newJsonBuilder("/api/bot/jobs/" + jobId + "/update")
             .POST(jsonBody(body))
             .build();
         HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
@@ -98,7 +99,7 @@ public final class BackendClient {
         body.add("coords", coords);
         body.addProperty("bot_id", botId);
 
-        HttpRequest req = newBuilder("/api/bot/orders/" + orderId + "/handoff")
+        HttpRequest req = newJsonBuilder("/api/bot/orders/" + orderId + "/handoff")
             .POST(jsonBody(body))
             .build();
         HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
@@ -118,7 +119,7 @@ public final class BackendClient {
             body.add("proof", new JsonObject());
         }
 
-        HttpRequest req = newBuilder("/api/bot/orders/" + orderId + "/dropped")
+        HttpRequest req = newJsonBuilder("/api/bot/orders/" + orderId + "/dropped")
             .POST(jsonBody(body))
             .build();
         HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
@@ -131,8 +132,13 @@ public final class BackendClient {
         return HttpRequest.newBuilder()
             .uri(URI.create(backendUrl + path))
             .header("X-Bot-Key", botKey)
+            .header("X-Bot-Id", botId)
             .header("Accept", "application/json")
             .timeout(Duration.ofSeconds(15));
+    }
+
+    private HttpRequest.Builder newJsonBuilder(final String path) {
+        return newBuilder(path).header("Content-Type", "application/json");
     }
 
     private HttpRequest.BodyPublisher jsonBody(final JsonObject obj) {

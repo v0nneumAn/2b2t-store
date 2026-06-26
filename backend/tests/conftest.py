@@ -36,7 +36,7 @@ limiter_module.limiter = _DummyLimiter()
 sys.modules["src.limiter"] = limiter_module
 
 from src.main import app  # noqa: E402
-from src.models import Base, Product, Depot, Cart, Order, get_db  # noqa: E402
+from src.models import Base, Product, Depot, Cart, Order, Bot, get_db  # noqa: E402
 
 
 engine = create_engine(
@@ -93,8 +93,16 @@ def client(db):
         reserved_inventory={},
         is_active=True,
     )
+    bot = Bot(
+        id="bot-delivery-alpha",
+        role="delivery-alpha",
+        bot_type="delivery",
+        status="active",
+        config={"api_key": "test-bot-key"},
+    )
     db.add(product)
     db.add(depot)
+    db.add(bot)
     db.commit()
 
     yield TestClient(app, base_url="https://testserver")
@@ -111,6 +119,11 @@ def admin_client(client):
 @pytest.fixture(scope="function")
 def session_id():
     return secrets.token_hex(16)
+
+
+@pytest.fixture(scope="function")
+def bot_headers():
+    return {"X-Bot-Id": "delivery-alpha", "X-Bot-Key": "test-bot-key"}
 
 
 @pytest.fixture(scope="function")

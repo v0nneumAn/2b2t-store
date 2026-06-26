@@ -1,15 +1,15 @@
 from src.models import DeliveryJob, Order, OrderStatus
 
 
-def test_get_order_includes_handoff_coords(client, paid_order, session_id):
+def test_get_order_includes_handoff_coords(client, paid_order, session_id, bot_headers):
     # Bot reports handoff coordinates.
     resp = client.post(
         f"/api/bot/orders/{paid_order}/handoff",
         json={
             "coords": {"x": 150, "y": 70, "z": -280, "dimension": "overworld"},
-            "bot_id": "DeliveryBot-Alpha",
+            "bot_id": "delivery-alpha",
         },
-        headers={"X-Bot-Key": "test-bot-key"},
+        headers=bot_headers,
     )
     assert resp.status_code == 200
 
@@ -22,18 +22,18 @@ def test_get_order_includes_handoff_coords(client, paid_order, session_id):
     data = resp.json()
     assert data["status"] == OrderStatus.READY_FOR_PICKUP.value
     assert data["handoff_coords"]["x"] == 150
-    assert data["assigned_bot"] == "DeliveryBot-Alpha"
+    assert data["assigned_bot"] == "delivery-alpha"
 
 
-def test_confirm_arrival_creates_drop_job(client, paid_order, session_id, db):
+def test_confirm_arrival_creates_drop_job(client, paid_order, session_id, db, bot_headers):
     # Move order to ready_for_pickup.
     client.post(
         f"/api/bot/orders/{paid_order}/handoff",
         json={
             "coords": {"x": 150, "y": 70, "z": -280, "dimension": "overworld"},
-            "bot_id": "DeliveryBot-Alpha",
+            "bot_id": "delivery-alpha",
         },
-        headers={"X-Bot-Key": "test-bot-key"},
+        headers=bot_headers,
     )
 
     # Customer confirms arrival.
@@ -74,14 +74,14 @@ def test_confirm_arrival_requires_session_ownership(client, paid_order):
     assert resp.status_code == 404
 
 
-def test_arrival_is_idempotent(client, paid_order, session_id, db):
+def test_arrival_is_idempotent(client, paid_order, session_id, db, bot_headers):
     client.post(
         f"/api/bot/orders/{paid_order}/handoff",
         json={
             "coords": {"x": 150, "y": 70, "z": -280, "dimension": "overworld"},
-            "bot_id": "DeliveryBot-Alpha",
+            "bot_id": "delivery-alpha",
         },
-        headers={"X-Bot-Key": "test-bot-key"},
+        headers=bot_headers,
     )
 
     resp1 = client.post(

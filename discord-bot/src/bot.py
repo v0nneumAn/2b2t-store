@@ -12,8 +12,8 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_ID = os.getenv("GUILD_ID")
 BOT_API_KEY = os.getenv("BOT_API_KEY")
-
-intents = discord.Intents.default()
+DISCORD_BOT_ID = os.getenv("DISCORD_BOT_ID", "discord-notifier")
+DISCORD_BOT_API_KEY = os.getenv("DISCORD_BOT_API_KEY") or BOT_API_KEY
 intents.message_content = True
 intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -23,9 +23,9 @@ _notified_order_ids: set[str] = set()
 
 
 def _api_headers(discord_id: str | None = None):
-    headers = {}
-    if BOT_API_KEY:
-        headers["X-Bot-Key"] = BOT_API_KEY
+    headers = {"X-Bot-Id": DISCORD_BOT_ID}
+    if DISCORD_BOT_API_KEY:
+        headers["X-Bot-Key"] = DISCORD_BOT_API_KEY
     if discord_id:
         headers["X-Discord-Id"] = discord_id
     return headers
