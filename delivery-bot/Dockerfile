@@ -36,6 +36,10 @@ RUN printf '{\n  "auto_update": true,\n  "auto_update_launcher": true,\n  "relea
 # Copy the built plugin into the plugins folder.
 COPY --from=builder /build/build/libs/*.jar /zenith/plugins/
 
+# Install the ZenithProxyWebAPI plugin so the backend can send commands.
+ARG ZENITH_WEB_API_PLUGIN_URL=https://github.com/rfresh2/ZenithProxyWebAPI/releases/download/1.1.0/ZenithProxyWebAPI-1.1.0.jar
+RUN curl -L -o /zenith/plugins/ZenithProxyWebAPI.jar ${ZENITH_WEB_API_PLUGIN_URL}
+
 # Bot configuration and account cache are supplied via bind-mount at runtime.
 VOLUME ["/zenith/config"]
 
