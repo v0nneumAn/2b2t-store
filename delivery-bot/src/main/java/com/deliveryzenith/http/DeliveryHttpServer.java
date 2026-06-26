@@ -156,7 +156,11 @@ public class DeliveryHttpServer {
     }
 
     private boolean checkAuth(final HttpExchange exchange) throws IOException {
-        if (apiSecret == null || apiSecret.isBlank()) return true; // auth disabled
+        if (apiSecret == null || apiSecret.isBlank()) {
+            // Fail closed: the operator must generate an apiSecret in delivery-zenith.json.
+            sendError(exchange, 401, "apiSecret not configured");
+            return false;
+        }
         String header = exchange.getRequestHeaders().getFirst("X-Api-Secret");
         if (!apiSecret.equals(header)) {
             sendError(exchange, 401, "Unauthorized");

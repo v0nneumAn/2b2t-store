@@ -60,6 +60,13 @@ public class DeliveryZenithPlugin implements ZenithProxyPlugin {
             JOB_POLLER.start();
         }
 
+        String apiSecret = PLUGIN_CONFIG.deliveryBot.apiSecret;
+        if (apiSecret == null || apiSecret.isBlank()) {
+            apiSecret = System.getenv("DELIVERY_BOT_API_SECRET");
+        }
+        if (apiSecret != null && !apiSecret.isBlank()) {
+            PLUGIN_CONFIG.deliveryBot.apiSecret = apiSecret;
+        }
         HTTP_SERVER = new DeliveryHttpServer(PLUGIN_CONFIG.deliveryBot.apiSecret);
         try {
             HTTP_SERVER.start(PLUGIN_CONFIG.deliveryBot.httpPort);

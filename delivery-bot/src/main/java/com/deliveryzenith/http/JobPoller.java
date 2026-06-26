@@ -99,6 +99,7 @@ public final class JobPoller {
         Order order = new Order(orderId, customerIgn);
         order.state = State.NEW;
 
+        boolean isDrop = "drop".equalsIgnoreCase(jobType);
         JsonArray items = payload.has("items") && payload.get("items").isJsonArray()
             ? payload.getAsJsonArray("items")
             : new JsonArray();
@@ -117,7 +118,8 @@ public final class JobPoller {
                     sourceId = getString(chest, "id");
                 }
             }
-            if (count <= 0 || sourceId == null) {
+            // Drop jobs withdraw from the handoff ender chest and do not need a source chest.
+            if (count <= 0 || (sourceId == null && !isDrop)) {
                 LOG.warn("Skipping malformed item in order {}: {}", orderId, item);
                 continue;
             }

@@ -59,6 +59,11 @@ class ZenithCommandResponse(BaseModel):
     response: dict
 
 
+def _validate_zenith_command(command: str, allowed: set[str]) -> bool:
+    first = command.strip().split()[0].lower()
+    return first in allowed
+
+
 @router.post("", response_model=BotResponse)
 def create_bot(
     payload: BotCreate,
@@ -160,6 +165,13 @@ def send_zenith_command(
     bot = db.query(models.Bot).filter(models.Bot.role == role).first()
     if not bot:
         raise HTTPException(status_code=404, detail="Bot not found")
+
+    settings = get_settings()
+    if not _validate_zenith_command(payload.command, settings.zenith_allowed_command_set):
+        raise HTTPException(
+            status_code=400,
+            detail="Command not in allowed ZenithProxy command whitelist",
+        )
 
     client = get_bot_zenith_client(bot.config)
     if not client:

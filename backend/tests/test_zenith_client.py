@@ -93,3 +93,21 @@ def test_admin_send_zenith_command_no_config(admin_client, db):
     )
     # No global config in test env, so this should fail with 400.
     assert resp.status_code == 400
+
+
+def test_admin_send_zenith_command_blocked_by_whitelist(admin_client, db):
+    bot = Bot(
+        id="bot-delivery",
+        role="delivery-beta",
+        bot_type="delivery",
+        config={"web_api": {"url": "http://zenith:8080", "token": "bot-secret"}},
+    )
+    db.add(bot)
+    db.commit()
+
+    resp = admin_client.post(
+        "/api/bots/delivery-beta/zenith/command",
+        json={"command": "exec rm -rf /"},
+    )
+    assert resp.status_code == 400
+    assert "whitelist" in resp.json()["detail"].lower()

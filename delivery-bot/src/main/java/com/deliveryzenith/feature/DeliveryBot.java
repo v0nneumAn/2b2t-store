@@ -241,6 +241,8 @@ public final class DeliveryBot extends ModuleUtils {
         MODULE.get(AutoReconnect.class).cancelAutoReconnect();
         Proxy.getInstance().disconnect(SYSTEM_DISCONNECT);
         reportJobStatus("ready_for_pickup");
+        PLUGIN_CONFIG.deliveryBot.activeOrder = null;
+        saveConfigAsync();
     }
 
     private void reportHandoff(final Order order) {
@@ -292,6 +294,8 @@ public final class DeliveryBot extends ModuleUtils {
 
         MODULE.get(AutoReconnect.class).cancelAutoReconnect();
         Proxy.getInstance().disconnect(SYSTEM_DISCONNECT);
+        PLUGIN_CONFIG.deliveryBot.activeOrder = null;
+        saveConfigAsync();
     }
 
     private void moveToDropPoint(final Order order) throws Exception {
@@ -627,19 +631,27 @@ public final class DeliveryBot extends ModuleUtils {
         if (stack == null || stack == Container.EMPTY_STACK) return false;
         ItemData item = ItemRegistry.REGISTRY.get(stack.getId());
         if (item == null) return false;
-        return SHULKER_BOX_NAMES.contains(item.name());
+        String name = item.name();
+        if (!name.contains(":")) name = "minecraft:" + name;
+        return SHULKER_BOX_NAMES.contains(name);
     }
 
     private boolean isEnderPearl(final @Nullable ItemStack stack) {
         if (stack == null || stack == Container.EMPTY_STACK) return false;
         ItemData item = ItemRegistry.REGISTRY.get(stack.getId());
-        return item != null && item.name().equals(ENDER_PEARL_ITEM);
+        if (item == null) return false;
+        String name = item.name();
+        if (!name.contains(":")) name = "minecraft:" + name;
+        return name.equals(ENDER_PEARL_ITEM);
     }
 
     private boolean isItem(final @Nullable ItemStack stack, final String itemName) {
         if (stack == null || stack == Container.EMPTY_STACK) return false;
         ItemData item = ItemRegistry.REGISTRY.get(stack.getId());
-        return item != null && item.name().equals(itemName);
+        if (item == null) return false;
+        String name = item.name();
+        if (!name.contains(":")) name = "minecraft:" + name;
+        return name.equals(itemName);
     }
 
     private int findShulkerBoxSlot(final Container container, final SlotRange range) {
@@ -682,18 +694,21 @@ public final class DeliveryBot extends ModuleUtils {
     private void openSourceChest(final SourceChest source) throws Exception {
         awaitPath(BARITONE.rightClickBlock(source.x(), source.y(), source.z()), "open source chest " + source.id());
         waitForOpenContainer("source chest " + source.id());
+        waitForContainerItems();
     }
 
     private void openNearestEnderChest() throws Exception {
         awaitPath(BARITONE.getTo(BlockRegistry.ENDER_CHEST, true), "open nearest ender chest");
         waitForOpenContainer("ender chest");
+        waitForContainerItems();
     }
 
     private void slashKillAndWaitForRespawn(final Order order) {
         checkRunning();
         setOrderState(order, State.KILLING_TO_SPAWN, "Sending /kill");
         saveConfigAsync();
-        Proxy.getInstance().getClient().sendAsync(new ServerboundChatPacket("/kill"));
+        String selfName = CACHE.getProfileCache().getProfile().getName();
+        Proxy.getInstance().getClient().sendAsync(new ServerboundChatPacket("/kill " + selfName));
         boolean died = Wait.waitUntil(() -> !CACHE.getPlayerCache().isAlive(), 100, PLUGIN_CONFIG.deliveryBot.operationTimeoutSeconds, TimeUnit.SECONDS);
         if (!died) {
             throw new IllegalStateException("Timed out waiting for /kill to take effect");
@@ -728,6 +743,18 @@ public final class DeliveryBot extends ModuleUtils {
         if (!opened) {
             throw new IllegalStateException("Timed out opening " + label);
         }
+    }
+
+    private void waitForContainerItems() {
+        // Give the server a moment to send container contents after the open packet.
+        Wait.waitUntil(() -> {
+            Container c = CACHE.getPlayerCache().getInventoryCache().getOpenContainer();
+            if (c == null || c.getContainerId() == 0) return false;
+            for (int i = 0; i < c.getSize(); i++) {
+                if (isAnyShulkerBox(c.getItemStack(i))) return true;
+            }
+            return false;
+        }, 50, 5, TimeUnit.SECONDS);
     }
 
     // -------------------------------------------------------------------------
@@ -793,10 +820,13 @@ public final class DeliveryBot extends ModuleUtils {
             if (item.count() <= 0) {
                 throw new IllegalStateException("Invalid shulker box count for source " + item.sourceChestId());
             }
-            if (item.sourceChestId() == null || item.sourceChestId().isBlank()) {
-                throw new IllegalStateException("Missing sourceChestId on order item");
+            // Drop jobs do not pull from source chests; they withdraw from the ender chest.
+            if (order.state != State.WAITING_FOR_CUSTOMER) {
+                if (item.sourceChestId() == null || item.sourceChestId().isBlank()) {
+                    throw new IllegalStateException("Missing sourceChestId on order item");
+                }
+                requireSource(item.sourceChestId()); // validate the source exists
             }
-            requireSource(item.sourceChestId()); // validate the source exists
         }
     }
 

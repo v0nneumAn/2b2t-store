@@ -43,9 +43,24 @@ class Settings(BaseSettings):
     zenith_web_api_url: str = ""
     zenith_web_api_token: str = ""
 
+    # Comma-separated whitelist of ZenithProxy commands the backend is allowed
+    # to relay via /api/bots/{role}/zenith/command. First-token matching.
+    zenith_allowed_commands: str = (
+        "status,connect,disconnect,reconnect,respawn,pathfinder,walk,look,jump,use,"
+        "attack,swap,slot,drop,inventory,echest,chunks,chunk,stop"
+    )
+
     @property
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def zenith_allowed_command_set(self) -> set[str]:
+        return {
+            cmd.strip().lower()
+            for cmd in self.zenith_allowed_commands.split(",")
+            if cmd.strip()
+        }
 
     class Config:
         env_file = ".env"
