@@ -79,7 +79,7 @@ services:
       - ZENITH_DISCORD_DISABLED=true
     volumes:
       - delivery-bot-config:/zenith/config
-      - ../delivery-bot/config/delivery-zenith.json:/zenith/config/delivery-zenith.json
+      - ../delivery-bot/config/delivery-zenith.json:/zenith/config/delivery-zenith.json:ro
     depends_on:
       backend:
         condition: service_healthy

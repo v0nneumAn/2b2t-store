@@ -34,8 +34,8 @@ Thumbs.db
 # Project specific
 backend/data/
 delivery-bot/config.json
-advert-bot/config/*.json
-!advert-bot/config/*.example
+advert-bot/config/**/*.json
+!advert-bot/config/**/*.example
 advert-bot/generated/*.json
 infra/testbed/kimi-testbed
 infra/testbed/kimi-testbed.pub
