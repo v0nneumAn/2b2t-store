@@ -42,7 +42,7 @@ def main():
             "jobPollIntervalSeconds": int(get("DELIVERY_BOT_POLL_INTERVAL_SECONDS", "10")),
             "jobPollingEnabled": get("DELIVERY_BOT_POLLING_ENABLED", "true").lower() == "true",
             "pearlBotEnabled": get("DELIVERY_BOT_PEARL_BOT_ENABLED", "false").lower() == "true",
-            "httpPort": int(get("DELIVERY_BOT_HTTP_PORT", "8080")),
+            "httpPort": int(get("DELIVERY_BOT_HTTP_PORT", "8081")),
             "pearlBotUrl": get("PEARL_BOT_URL", "http://pearl-bot:8081"),
             "apiSecret": api_secret,
             "sourceChests": [],

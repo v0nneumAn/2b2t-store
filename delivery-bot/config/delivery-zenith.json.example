@@ -6,7 +6,7 @@
     "jobPollIntervalSeconds": 10,
     "jobPollingEnabled": true,
     "pearlBotEnabled": false,
-    "httpPort": 8080,
+    "httpPort": 8081,
     "pearlBotUrl": "http://pearl-bot:8081",
     "apiSecret": "",
     "sourceChests": [
