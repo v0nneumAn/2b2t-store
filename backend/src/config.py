@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     bot_api_key: str
     admin_api_key: str
 
+    # Demo features
+    demo_mode: bool = False
+
     # Frontend URL used to build Stripe success/cancel URLs
     frontend_url: str = "http://localhost:5173"
 

@@ -18,6 +18,7 @@ os.environ["STRIPE_PUBLISHABLE_KEY"] = "pk_test_xxx"
 os.environ["STRIPE_WEBHOOK_SECRET"] = "whsec_xxx"
 os.environ["FRONTEND_URL"] = "http://localhost:5173"
 os.environ["CORS_ORIGINS"] = "http://localhost:5173"
+os.environ["DEMO_MODE"] = "true"
 
 # Disable rate limiting for tests by injecting a no-op limiter before routes load.
 limiter_module = ModuleType("src.limiter")

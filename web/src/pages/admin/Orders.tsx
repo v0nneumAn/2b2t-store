@@ -15,13 +15,27 @@ interface Order {
   created_at: string
 }
 
+const STATE_ORDER = [
+  'awaiting_payment',
+  'paid',
+  'preparing',
+  'in_transit',
+  'ready_for_pickup',
+  'customer_arrived',
+  'dropping',
+  'delivered',
+  'completed',
+]
+
 const DEMO_STATES = ['ready_for_pickup', 'customer_arrived', 'dropping', 'delivered', 'completed']
 
 function Orders() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [demoEnabled, setDemoEnabled] = useState<boolean | null>(null)
   const [advancing, setAdvancing] = useState<string | null>(null)
+  const [toast, setToast] = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -35,14 +49,38 @@ function Orders() {
     }
   }
 
+  const loadDemoMode = async () => {
+    try {
+      const status = await adminGet<{ enabled: boolean }>('/admin/demo-mode')
+      setDemoEnabled(status.enabled)
+    } catch {
+      setDemoEnabled(false)
+    }
+  }
+
   useEffect(() => {
     load()
+    loadDemoMode()
   }, [])
 
-  const advance = async (orderId: string, to: string) => {
-    setAdvancing(orderId + to)
+  const nextDemoState = (current: string): string | null => {
+    const currentIndex = STATE_ORDER.indexOf(current)
+    if (currentIndex === -1) return null
+    return (
+      DEMO_STATES.find((state) => STATE_ORDER.indexOf(state) > currentIndex) || null
+    )
+  }
+
+  const advance = async (order: Order) => {
+    const target = nextDemoState(order.status)
+    if (!target) return
+
+    setAdvancing(order.id)
+    setError('')
     try {
-      await adminPost(`/admin/orders/${orderId}/demo-advance`, { to })
+      await adminPost(`/admin/orders/${order.id}/demo-advance`, { to: target })
+      setToast(`Order advanced to ${target.replace(/_/g, ' ')}`)
+      setTimeout(() => setToast(''), 3000)
       load()
     } catch (err: any) {
       setError(err.message)
@@ -94,6 +132,19 @@ function Orders() {
         </div>
       )}
 
+      {toast && (
+        <div className="mb-4 bg-green-500/10 border border-green-500/30 text-green-200 px-4 py-3 rounded-lg">
+          {toast}
+        </div>
+      )}
+
+      {demoEnabled === false && (
+        <div className="mb-4 bg-zinc-800/50 border border-zinc-700 text-zinc-300 px-4 py-3 rounded-lg text-sm">
+          Demo mode is disabled. Enable <code className="bg-zinc-900 px-1 rounded">DEMO_MODE=true</code> in the
+          environment to simulate delivery states.
+        </div>
+      )}
+
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
         <table className="w-full text-sm text-left">
           <thead className="bg-zinc-800 text-zinc-300">
@@ -103,7 +154,7 @@ function Orders() {
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3">Handoff</th>
-              <th className="px-4 py-3">Demo Advance</th>
+              <th className="px-4 py-3">Demo</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
@@ -120,48 +171,49 @@ function Orders() {
                 </td>
               </tr>
             ) : (
-              orders.map((o) => (
-                <tr key={o.id} className="hover:bg-zinc-800/30">
-                  <td className="px-4 py-3">
-                    <div className="font-mono text-xs text-zinc-500">{o.id.slice(0, 16)}…</div>
-                    <div className="text-xs text-zinc-400 capitalize">{o.delivery_type}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={statusStyle(o.status)}>{o.status.replace(/_/g, ' ')}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>{o.customer_email || '—'}</div>
-                    {o.customer_discord_id && (
-                      <div className="text-xs text-zinc-500">Discord: {o.customer_discord_id}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">${parseFloat(o.price_usd).toFixed(2)}</td>
-                  <td className="px-4 py-3">
-                    {o.handoff_coords ? (
-                      <div className="text-xs font-mono">
-                        {o.handoff_coords.x}, {o.handoff_coords.y}, {o.handoff_coords.z}
-                      </div>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {DEMO_STATES.map((state) => (
+              orders.map((o) => {
+                const target = nextDemoState(o.status)
+                return (
+                  <tr key={o.id} className="hover:bg-zinc-800/30">
+                    <td className="px-4 py-3">
+                      <div className="font-mono text-xs text-zinc-500">{o.id.slice(0, 16)}…</div>
+                      <div className="text-xs text-zinc-400 capitalize">{o.delivery_type}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={statusStyle(o.status)}>{o.status.replace(/_/g, ' ')}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>{o.customer_email || '—'}</div>
+                      {o.customer_discord_id && (
+                        <div className="text-xs text-zinc-500">Discord: {o.customer_discord_id}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">${parseFloat(o.price_usd).toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      {o.handoff_coords ? (
+                        <div className="text-xs font-mono">
+                          {o.handoff_coords.x}, {o.handoff_coords.y}, {o.handoff_coords.z}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {demoEnabled && target ? (
                         <button
-                          key={state}
-                          onClick={() => advance(o.id, state)}
-                          disabled={advancing === o.id + state}
-                          className="px-2 py-1 text-[10px] uppercase tracking-wide rounded bg-zinc-800 hover:bg-orange-500/20 hover:text-orange-400 disabled:opacity-50 transition-colors"
-                          title={`Advance to ${state}`}
+                          onClick={() => advance(o)}
+                          disabled={advancing === o.id}
+                          className="px-3 py-1.5 text-xs font-medium rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 hover:bg-orange-500/20 disabled:opacity-50 transition-colors"
                         >
-                          {state.replace(/_/g, ' ')}
+                          {advancing === o.id ? 'Working…' : `Simulate ${target.replace(/_/g, ' ')}`}
                         </button>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                      ) : (
+                        <span className="text-zinc-500 text-xs">—</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import auth
 from .. import models
+from ..config import get_settings
 from ..limiter import limiter
 from ..models import get_db, OrderStatus
 from ..services.delivery_queue import create_drop_job
@@ -104,6 +105,12 @@ def create_depot(request: Request, payload: DepotCreate, db: Session = Depends(g
     return depot
 
 
+@router.get("/demo-mode", dependencies=[Depends(auth.require_admin_key)])
+@limiter.limit("60/minute")
+def demo_mode_status(request: Request):
+    return {"enabled": get_settings().demo_mode}
+
+
 @router.post("/orders/{order_id}/demo-advance")
 @limiter.limit("60/minute")
 def demo_advance_order(
@@ -117,6 +124,9 @@ def demo_advance_order(
     Demo-only: manually advance an order through delivery states as if the bot
     had reported them. This endpoint is NOT for production use.
     """
+    if not get_settings().demo_mode:
+        raise HTTPException(status_code=403, detail="Demo mode is disabled")
+
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
