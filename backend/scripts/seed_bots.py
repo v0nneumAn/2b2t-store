@@ -51,11 +51,15 @@ def seed():
         for data in DEMO_BOTS:
             existing = db.query(Bot).filter(Bot.id == data["id"]).first()
             if existing:
-                if not existing.config or not existing.config.get("api_key"):
-                    existing.config = existing.config or {}
-                    existing.config["api_key"] = data["config"]["api_key"]
+                env_key = data["config"].get("api_key")
+                existing.config = existing.config or {}
+                if env_key and (
+                    not existing.config.get("api_key")
+                    or existing.config.get("api_key") != env_key
+                ):
+                    existing.config["api_key"] = env_key
                     db.commit()
-                    print(f"Generated api_key for existing bot {data['id']}.")
+                    print(f"Updated api_key for existing bot {data['id']}.")
                 else:
                     print(f"Bot {data['id']} already exists; skipping.")
                 continue
